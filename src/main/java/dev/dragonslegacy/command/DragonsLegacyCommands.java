@@ -9,6 +9,7 @@ import dev.dragonslegacy.ability.AbilityTimers;
 import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.egg.EggState;
 import dev.dragonslegacy.egg.EggTracker;
+import dev.dragonslegacy.utils.Utils;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
@@ -313,8 +314,8 @@ public class DragonsLegacyCommands {
                 for (ServerLevel level : server.getAllLevels()) {
                     net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
                     net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
-                        border.getMinX(), -4096.0, border.getMinZ(),
-                        border.getMaxX(), 4096.0, border.getMaxZ());
+                        border.getMinX(), Utils.WORLD_Y_MIN, border.getMinZ(),
+                        border.getMaxX(), Utils.WORLD_Y_MAX, border.getMaxZ());
                     for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                         if (item.getItem().is(Items.DRAGON_EGG)) {
                             item.discard();

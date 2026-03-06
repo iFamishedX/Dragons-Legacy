@@ -1,6 +1,7 @@
 package dev.dragonslegacy.egg;
 
 import dev.dragonslegacy.DragonsLegacyMod;
+import dev.dragonslegacy.utils.Utils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -59,8 +60,8 @@ public class EggAntiDupeEngine {
         for (ServerLevel level : server.getAllLevels()) {
             net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
             net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
-                border.getMinX(), -4096.0, border.getMinZ(),
-                border.getMaxX(), 4096.0, border.getMaxZ());
+                border.getMinX(), Utils.WORLD_Y_MIN, border.getMinZ(),
+                border.getMaxX(), Utils.WORLD_Y_MAX, border.getMaxZ());
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                 if (identityManager.isCanonicalEgg(item.getItem())) {
                     droppedItems.add(item);

@@ -28,6 +28,14 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Utils {
+
+    /**
+     * Generous Y bounds used when constructing AABB queries that span an entire
+     * world border.  These cover the maximum Y range of all vanilla MC dimensions
+     * (overworld: −64 … 320 in deep-dark mode, nether/end: 0 … 255).
+     */
+    public static final double WORLD_Y_MIN = -4096.0;
+    public static final double WORLD_Y_MAX =  4096.0;
     /**
      * Generates a random position around the given position with the given radius
      *
