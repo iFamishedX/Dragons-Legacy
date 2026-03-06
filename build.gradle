@@ -3,7 +3,7 @@ plugins {
     id 'com.gradleup.shadow' version '9.2.2'
 }
 
-version = "${project.mod_version}-${project.minecraft_version}"
+version = project.mod_version
 group = project.maven_group
 
 base {
@@ -37,6 +37,7 @@ tasks {
     remapJar {
         dependsOn(shadowJar)
         inputFile.set(shadowJar.archiveFile)
+        archiveFileName = "${project.mod_id}_${project.mod_version}+${project.minecraft_version}.jar"
     }
 
     shadowJar {
