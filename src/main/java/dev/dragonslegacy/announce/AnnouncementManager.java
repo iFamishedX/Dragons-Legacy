@@ -131,7 +131,7 @@ public class AnnouncementManager {
 
     private void onEggPickedUp(EggPickedUpEvent event) {
         Map<String, String> ph = new HashMap<>();
-        ph.put("player", event.getPlayer().getGameProfile().getName());
+        ph.put("player", event.getPlayer().getGameProfile().name());
         broadcast(format(getTemplate("egg_picked_up", AnnouncementTemplates.EGG_PICKED_UP), ph));
     }
 
@@ -219,11 +219,16 @@ public class AnnouncementManager {
     private String resolvePlayerName(UUID uuid) {
         if (server == null) return uuid.toString();
         ServerPlayer player = server.getPlayerList().getPlayer(uuid);
-        if (player != null) return player.getGameProfile().getName();
-        // Offline fallback: check the server's game profile cache
-        return server.getProfileCache()
-            .get(uuid)
-            .map(com.mojang.authlib.GameProfile::getName)
-            .orElse(uuid.toString());
+        if (player != null) return player.getGameProfile().name();
+        // Offline fallback: try the server's name-to-id resolver cache
+        try {
+            net.minecraft.server.players.CachedUserNameToIdResolver userCache =
+                (net.minecraft.server.players.CachedUserNameToIdResolver) server.services().nameToIdCache();
+            if (userCache != null) {
+                var result = userCache.get(uuid);
+                if (result.isPresent()) return result.get().name();
+            }
+        } catch (Exception ignored) {}
+        return uuid.toString();
     }
 }

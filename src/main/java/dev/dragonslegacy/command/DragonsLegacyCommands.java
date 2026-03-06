@@ -27,7 +27,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
-import java.util.List;
 import java.util.UUID;
 
 import static net.minecraft.commands.Commands.argument;
@@ -109,7 +108,7 @@ public class DragonsLegacyCommands {
         } else {
             ServerPlayer bearerPlayer = tracker.getBearerPlayer(server);
             bearerName = bearerPlayer != null
-                ? bearerPlayer.getGameProfile().getName()
+                ? bearerPlayer.getGameProfile().name()
                 : bearerUUID.toString();
         }
 
@@ -183,7 +182,7 @@ public class DragonsLegacyCommands {
         // Update the tracker so events (bearer-changed, etc.) fire correctly
         tracker.updateEggHeld(target);
 
-        String targetName = target.getGameProfile().getName();
+        String targetName = target.getGameProfile().name();
         source.sendSuccess(
             () -> Component.literal("[Dragon's Legacy] Bearer set to ")
                 .append(Component.literal(targetName).withStyle(ChatFormatting.GOLD))
@@ -312,8 +311,11 @@ public class DragonsLegacyCommands {
             }
             case DROPPED_ITEM -> {
                 for (ServerLevel level : server.getAllLevels()) {
-                    for (ItemEntity item : level.getEntitiesOfClass(
-                            ItemEntity.class, level.getWorldBorder().createBoundingBox())) {
+                    net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
+                    net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
+                        border.getMinX(), level.getMinBuildHeight(), border.getMinZ(),
+                        border.getMaxX(), level.getMaxBuildHeight(), border.getMaxZ());
+                    for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                         if (item.getItem().is(Items.DRAGON_EGG)) {
                             item.discard();
                             return;
@@ -332,13 +334,19 @@ public class DragonsLegacyCommands {
      * @param player the {@link ServerPlayer} whose inventory should be cleared
      */
     private static void removeEggFromInventory(ServerPlayer player) {
-        var inv = player.getInventory();
-        for (List<ItemStack> slots : List.of(inv.items, inv.armor, inv.offhand)) {
-            for (ItemStack stack : slots) {
-                if (stack.is(Items.DRAGON_EGG)) {
-                    stack.shrink(stack.getCount());
-                    return;
-                }
+        // Check main inventory slots
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (stack.is(Items.DRAGON_EGG)) {
+                stack.shrink(stack.getCount());
+                return;
+            }
+        }
+        // Check armor and offhand equipment slots
+        for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+            ItemStack stack = player.getItemBySlot(slot);
+            if (stack.is(Items.DRAGON_EGG)) {
+                player.setItemSlot(slot, ItemStack.EMPTY);
+                return;
             }
         }
     }

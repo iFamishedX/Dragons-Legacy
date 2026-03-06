@@ -132,7 +132,7 @@ public class EggEventHandler {
             // After breaking, the egg becomes an item entity; let the entity-load event handle the state
             // For now just scan to update state
             if (player instanceof ServerPlayer serverPlayer) {
-                tracker.scanAndLocateEgg(serverPlayer.server);
+                tracker.scanAndLocateEgg(serverPlayer.getServer());
             }
         });
 

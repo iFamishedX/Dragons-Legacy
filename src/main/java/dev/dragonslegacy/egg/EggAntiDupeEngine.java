@@ -47,14 +47,21 @@ public class EggAntiDupeEngine {
         List<ItemEntity> droppedItems  = new ArrayList<>();
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            collectCanonicalEggs(player.getInventory().items, playerStacks);
-            collectCanonicalEggs(player.getInventory().armor, playerStacks);
-            collectCanonicalEggs(player.getInventory().offhand, playerStacks);
+            // Main inventory slots
+            collectCanonicalEggs(player.getInventory().getNonEquipmentItems(), playerStacks);
+            // Armor and offhand slots
+            for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+                ItemStack stack = player.getItemBySlot(slot);
+                if (identityManager.isCanonicalEgg(stack)) playerStacks.add(stack);
+            }
         }
 
         for (ServerLevel level : server.getAllLevels()) {
-            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
-                level.getWorldBorder().createBoundingBox())) {
+            net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
+            net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
+                border.getMinX(), level.getMinBuildHeight(), border.getMinZ(),
+                border.getMaxX(), level.getMaxBuildHeight(), border.getMaxZ());
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                 if (identityManager.isCanonicalEgg(item.getItem())) {
                     droppedItems.add(item);
                 }

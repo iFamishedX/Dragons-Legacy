@@ -85,7 +85,7 @@ public class AbilityEngine {
         if (state == AbilityState.COOLDOWN) {
             DragonsLegacyMod.LOGGER.debug(
                 "[Dragon's Legacy] Dragon's Hunger on cooldown for {} ({} ticks remaining).",
-                player.getGameProfile().getName(), timers.getCooldownRemaining()
+                player.getGameProfile().name(), timers.getCooldownRemaining()
             );
             return;
         }
@@ -99,7 +99,7 @@ public class AbilityEngine {
 
         DragonsLegacyMod.LOGGER.info(
             "[Dragon's Legacy] Dragon's Hunger activated for {} ({} ticks).",
-            player.getGameProfile().getName(), timers.getConfiguredDuration()
+            player.getGameProfile().name(), timers.getConfiguredDuration()
         );
 
         publishEvent(new AbilityActivatedEvent(player.getUUID(), timers.getConfiguredDuration()));
@@ -123,7 +123,7 @@ public class AbilityEngine {
 
         DragonsLegacyMod.LOGGER.info(
             "[Dragon's Legacy] Dragon's Hunger deactivated for {} (reason: {}).",
-            player.getGameProfile().getName(), reason
+            player.getGameProfile().name(), reason
         );
 
         publishEvent(new AbilityDeactivatedEvent(player.getUUID(), reason));

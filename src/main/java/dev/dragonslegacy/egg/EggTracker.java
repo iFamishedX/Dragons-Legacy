@@ -65,7 +65,7 @@ public class EggTracker {
         placedLocation    = null;
 
         persistentState.setBearerUUID(player.getUUID());
-        persistentState.setBearerLastSeenTick(player.serverLevel().getGameTime());
+        persistentState.setBearerLastSeenTick(player.level().getGameTime());
 
         eventBus.publish(new EggPickedUpEvent(player));
         if (!player.getUUID().equals(oldBearer)) {
@@ -114,8 +114,11 @@ public class EggTracker {
 
         // 2 – check dropped items in all worlds
         for (ServerLevel level : server.getAllLevels()) {
-            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
-                level.getWorldBorder().createBoundingBox())) {
+            net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
+            net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
+                border.getMinX(), level.getMinBuildHeight(), border.getMinZ(),
+                border.getMaxX(), level.getMaxBuildHeight(), border.getMaxZ());
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                 ItemStack stack = item.getItem();
                 if (stack.is(Items.DRAGON_EGG)) {
                     updateEggDropped(item);
@@ -126,7 +129,7 @@ public class EggTracker {
 
         // 3 – check a region around spawn for the placed dragon egg block
         ServerLevel overworld = server.overworld();
-        BlockPos spawn = BlockPos.containing(overworld.getRespawnData().pos());
+        BlockPos spawn = overworld.getRespawnData().pos();
         for (int dx = -64; dx <= 64; dx++) {
             for (int dz = -64; dz <= 64; dz++) {
                 for (int dy = -10; dy <= 10; dy++) {

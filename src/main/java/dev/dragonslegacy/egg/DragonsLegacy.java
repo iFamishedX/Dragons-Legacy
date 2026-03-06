@@ -70,7 +70,7 @@ public class DragonsLegacy {
         // 2. Load or create persistent state from overworld storage
         EggPersistentState state = server.overworld()
             .getDataStorage()
-            .computeIfAbsent(EggPersistentState.FACTORY, EggPersistentState.SAVE_ID);
+            .computeIfAbsent(EggPersistentState.TYPE);
 
         DragonsLegacy legacy = new DragonsLegacy(state, configManager);
 

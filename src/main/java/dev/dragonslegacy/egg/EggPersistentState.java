@@ -1,11 +1,13 @@
 package dev.dragonslegacy.egg;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.core.HolderLookup;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.level.saveddata.SavedData;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -17,8 +19,6 @@ import java.util.UUID;
  * </ul>
  */
 public class EggPersistentState extends SavedData {
-
-    public static final String SAVE_ID = "dragons_legacy_egg";
 
     private static final String KEY_EGG_ID          = "canonical_egg_id";
     private static final String KEY_BEARER_UUID      = "bearer_uuid";
@@ -32,33 +32,32 @@ public class EggPersistentState extends SavedData {
     public EggPersistentState() {}
 
     // -------------------------------------------------------------------------
-    // Factory / serialisation
+    // SavedDataType / serialisation
     // -------------------------------------------------------------------------
 
-    /** Factory used by {@link net.minecraft.world.level.storage.DimensionDataStorage}. */
-    public static final SavedData.Factory<EggPersistentState> FACTORY =
-        new SavedData.Factory<>(EggPersistentState::new, EggPersistentState::fromTag);
+    /** Type registration used by {@link net.minecraft.world.level.storage.DimensionDataStorage}. */
+    public static final SavedDataType<EggPersistentState> TYPE = new SavedDataType<>(
+        "dragons_legacy_egg",
+        ctx -> new EggPersistentState(),
+        ctx -> RecordCodecBuilder.create(instance -> instance.group(
+            UUIDUtil.CODEC.optionalFieldOf(KEY_EGG_ID)
+                .forGetter(s -> Optional.ofNullable(s.canonicalEggId)),
+            UUIDUtil.CODEC.optionalFieldOf(KEY_BEARER_UUID)
+                .forGetter(s -> Optional.ofNullable(s.bearerUUID)),
+            Codec.LONG.optionalFieldOf(KEY_BEARER_LAST_SEEN, -1L)
+                .forGetter(s -> s.bearerLastSeenTick)
+        ).apply(instance, EggPersistentState::create))
+    );
 
-    /** Deserialises from NBT (called by the SavedData infrastructure). */
-    public static EggPersistentState fromTag(CompoundTag tag, HolderLookup.Provider registries) {
+    private static EggPersistentState create(
+            Optional<UUID> canonicalEggId,
+            Optional<UUID> bearerUUID,
+            long bearerLastSeenTick) {
         EggPersistentState state = new EggPersistentState();
-        if (tag.contains(KEY_EGG_ID)) {
-            state.canonicalEggId = tag.getUUID(KEY_EGG_ID);
-        }
-        if (tag.contains(KEY_BEARER_UUID)) {
-            state.bearerUUID = tag.getUUID(KEY_BEARER_UUID);
-        }
-        state.bearerLastSeenTick = tag.getLong(KEY_BEARER_LAST_SEEN);
+        state.canonicalEggId    = canonicalEggId.orElse(null);
+        state.bearerUUID        = bearerUUID.orElse(null);
+        state.bearerLastSeenTick = bearerLastSeenTick;
         return state;
-    }
-
-    /** Serialises to NBT. */
-    @Override
-    public @NotNull CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        if (canonicalEggId != null)    tag.putUUID(KEY_EGG_ID, canonicalEggId);
-        if (bearerUUID != null)        tag.putUUID(KEY_BEARER_UUID, bearerUUID);
-        tag.putLong(KEY_BEARER_LAST_SEEN, bearerLastSeenTick);
-        return tag;
     }
 
     // -------------------------------------------------------------------------

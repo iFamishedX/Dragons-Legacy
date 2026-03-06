@@ -38,7 +38,7 @@ public class EggOfflineResetManager {
         @Nullable UUID bearer = persistentState.getBearerUUID();
         if (bearer != null && bearer.equals(player.getUUID())) {
             bearerLastOnlineMs = System.currentTimeMillis();
-            persistentState.setBearerLastSeenTick(player.serverLevel().getGameTime());
+            persistentState.setBearerLastSeenTick(player.level().getGameTime());
             DragonsLegacyMod.LOGGER.info(
                 "[Dragon's Legacy] Bearer {} came online – resetting offline timer.", player.getName().getString()
             );
@@ -50,7 +50,7 @@ public class EggOfflineResetManager {
         @Nullable UUID bearer = persistentState.getBearerUUID();
         if (bearer != null && bearer.equals(player.getUUID())) {
             bearerLastOnlineMs = System.currentTimeMillis();
-            persistentState.setBearerLastSeenTick(player.serverLevel().getGameTime());
+            persistentState.setBearerLastSeenTick(player.level().getGameTime());
         }
     }
 

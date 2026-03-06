@@ -58,7 +58,7 @@ public class EggIdentityManager {
 
         CustomData existing = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
         CompoundTag tag = existing.copyTag();
-        tag.putUUID(NBT_KEY, canonicalEggId);
+        tag.putString(NBT_KEY, canonicalEggId.toString());
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 
@@ -71,9 +71,10 @@ public class EggIdentityManager {
         CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
         if (customData == null) return null;
         CompoundTag tag = customData.copyTag();
-        if (!tag.contains(NBT_KEY)) return null;
         try {
-            return tag.getUUID(NBT_KEY);
+            return tag.getString(NBT_KEY)
+                .map(s -> { try { return UUID.fromString(s); } catch (Exception e) { return null; } })
+                .orElse(null);
         } catch (Exception e) {
             return null;
         }
