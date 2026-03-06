@@ -36,6 +36,7 @@ public class Utils {
      */
     public static final double WORLD_Y_MIN = -4096.0;
     public static final double WORLD_Y_MAX =  4096.0;
+
     /**
      * Generates a random position around the given position with the given radius
      *
