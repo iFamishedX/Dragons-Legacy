@@ -77,6 +77,10 @@ public class DragonsLegacyCommands {
                         .requires(Permissions.require(Perms.DRAGONSLEGACY_RESETCOOLDOWN, PermissionLevel.OWNERS))
                         .executes(DragonsLegacyCommands::resetCooldown)
                     )
+                    .then(literal("reload")
+                        .requires(Permissions.require(Perms.DRAGONSLEGACY_RELOAD, PermissionLevel.OWNERS))
+                        .executes(DragonsLegacyCommands::reload)
+                    )
             )
         );
     }
@@ -225,6 +229,26 @@ public class DragonsLegacyCommands {
 
         source.sendSuccess(
             () -> Component.literal("[Dragon's Legacy] Dragon's Hunger ability cleared."),
+            true
+        );
+        return 1;
+    }
+
+    // -------------------------------------------------------------------------
+    // /dragonslegacy reload
+    // -------------------------------------------------------------------------
+
+    private static int reload(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        DragonsLegacy legacy = DragonsLegacy.getInstance();
+        if (legacy == null) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
+            return -1;
+        }
+
+        legacy.reload();
+        source.sendSuccess(
+            () -> Component.literal("[Dragon's Legacy] Configuration reloaded successfully."),
             true
         );
         return 1;

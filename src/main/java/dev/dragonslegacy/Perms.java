@@ -13,6 +13,7 @@ public class Perms {
     public static final String DRAGONSLEGACY_SETBEARER = child(DRAGONSLEGACY, "setbearer");
     public static final String DRAGONSLEGACY_CLEARABILITY = child(DRAGONSLEGACY, "clearability");
     public static final String DRAGONSLEGACY_RESETCOOLDOWN = child(DRAGONSLEGACY, "resetcooldown");
+    public static final String DRAGONSLEGACY_RELOAD = child(DRAGONSLEGACY, "reload");
     public static final String PLACEHOLDERS = child(BASE, "placeholders");
     public static final String EXACT_POS_PLACEHOLDER = child(PLACEHOLDERS, "exact_pos");
     public static final String RANDOMIZED_POS_PLACEHOLDER = child(PLACEHOLDERS, "randomized_pos");

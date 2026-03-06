@@ -99,10 +99,10 @@ public class AbilityEngine {
 
         DragonsLegacyMod.LOGGER.info(
             "[Dragon's Legacy] Dragon's Hunger activated for {} ({} ticks).",
-            player.getGameProfile().getName(), AbilityTimers.DEFAULT_DURATION
+            player.getGameProfile().getName(), timers.getConfiguredDuration()
         );
 
-        publishEvent(new AbilityActivatedEvent(player.getUUID(), AbilityTimers.DEFAULT_DURATION));
+        publishEvent(new AbilityActivatedEvent(player.getUUID(), timers.getConfiguredDuration()));
     }
 
     /**
@@ -127,7 +127,7 @@ public class AbilityEngine {
         );
 
         publishEvent(new AbilityDeactivatedEvent(player.getUUID(), reason));
-        publishEvent(new AbilityCooldownStartedEvent(AbilityTimers.DEFAULT_COOLDOWN));
+        publishEvent(new AbilityCooldownStartedEvent(timers.getConfiguredCooldown()));
         activePlayerUUID = null;
     }
 
@@ -194,7 +194,7 @@ public class AbilityEngine {
         if (expiredFor != null) {
             publishEvent(new AbilityExpiredEvent(expiredFor));
         }
-        publishEvent(new AbilityCooldownStartedEvent(AbilityTimers.DEFAULT_COOLDOWN));
+        publishEvent(new AbilityCooldownStartedEvent(timers.getConfiguredCooldown()));
     }
 
     /**

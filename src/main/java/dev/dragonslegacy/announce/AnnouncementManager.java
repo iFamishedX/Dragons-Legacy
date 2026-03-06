@@ -46,6 +46,27 @@ public class AnnouncementManager {
 
     private @Nullable MinecraftServer server;
 
+    /**
+     * Runtime announcement templates, populated from {@link dev.dragonslegacy.config.ConfigManager}
+     * after config is loaded.  Falls back to the hardcoded {@link AnnouncementTemplates} constants
+     * when a key is absent.
+     */
+    private Map<String, String> templates = new new HashMap<>();
+
+    // -------------------------------------------------------------------------
+    // Configuration
+    // -------------------------------------------------------------------------
+
+    /**
+     * Replaces the current template map.  Called by the Dragon's Legacy coordinator
+     * whenever the config is (re-)loaded.
+     *
+     * @param templates the new template map (may be {@code null} to reset to defaults)
+     */
+    public void setTemplates(Map<String, String> templates) {
+        this.templates = templates != null ? templates : new new HashMap<>();
+    }
+
     // -------------------------------------------------------------------------
     // Lifecycle
     // -------------------------------------------------------------------------
@@ -109,40 +130,40 @@ public class AnnouncementManager {
     // -------------------------------------------------------------------------
 
     private void onEggPickedUp(EggPickedUpEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("player", event.getPlayer().getGameProfile().getName());
-        broadcast(format(AnnouncementTemplates.EGG_PICKED_UP, ph));
+        broadcast(format(getTemplate("egg_picked_up", AnnouncementTemplates.EGG_PICKED_UP), ph));
     }
 
     private void onEggDropped(EggDroppedEvent event) {
-        broadcast(AnnouncementTemplates.EGG_DROPPED);
+        broadcast(getTemplate("egg_dropped", AnnouncementTemplates.EGG_DROPPED));
     }
 
     private void onEggPlaced(EggPlacedEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("x", String.valueOf(event.getPosition().getX()));
         ph.put("y", String.valueOf(event.getPosition().getY()));
         ph.put("z", String.valueOf(event.getPosition().getZ()));
-        broadcast(format(AnnouncementTemplates.EGG_PLACED, ph));
+        broadcast(format(getTemplate("egg_placed", AnnouncementTemplates.EGG_PLACED), ph));
     }
 
     private void onBearerChanged(EggBearerChangedEvent event) {
         UUID newBearer = event.getNewBearerUUID();
         if (newBearer == null) {
-            broadcast(AnnouncementTemplates.BEARER_CLEARED);
+            broadcast(getTemplate("bearer_cleared", AnnouncementTemplates.BEARER_CLEARED));
         } else {
-            Map<String, String> ph = new HashMap<>();
+            Map<String, String> ph = new new HashMap<>();
             ph.put("player", resolvePlayerName(newBearer));
-            broadcast(format(AnnouncementTemplates.BEARER_CHANGED, ph));
+            broadcast(format(getTemplate("bearer_changed", AnnouncementTemplates.BEARER_CHANGED), ph));
         }
     }
 
     private void onEggTeleportedToSpawn(EggTeleportedToSpawnEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("x", String.valueOf((int) event.getSpawnPosition().x));
         ph.put("y", String.valueOf((int) event.getSpawnPosition().y));
         ph.put("z", String.valueOf((int) event.getSpawnPosition().z));
-        broadcast(format(AnnouncementTemplates.EGG_TELEPORTED_TO_SPAWN, ph));
+        broadcast(format(getTemplate("egg_teleported_to_spawn", AnnouncementTemplates.EGG_TELEPORTED_TO_SPAWN), ph));
     }
 
     // -------------------------------------------------------------------------
@@ -150,31 +171,40 @@ public class AnnouncementManager {
     // -------------------------------------------------------------------------
 
     private void onAbilityActivated(AbilityActivatedEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("player", resolvePlayerName(event.getPlayerUUID()));
         ph.put("seconds", String.valueOf(event.getDuration() / TICKS_PER_SECOND));
-        broadcast(format(AnnouncementTemplates.ABILITY_ACTIVATED, ph));
+        broadcast(format(getTemplate("ability_activated", AnnouncementTemplates.ABILITY_ACTIVATED), ph));
     }
 
     private void onAbilityExpired(AbilityExpiredEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("player", resolvePlayerName(event.getPlayerUUID()));
-        broadcast(format(AnnouncementTemplates.ABILITY_EXPIRED, ph));
+        broadcast(format(getTemplate("ability_expired", AnnouncementTemplates.ABILITY_EXPIRED), ph));
     }
 
     private void onCooldownStarted(AbilityCooldownStartedEvent event) {
-        Map<String, String> ph = new HashMap<>();
+        Map<String, String> ph = new new HashMap<>();
         ph.put("seconds", String.valueOf(event.getCooldownTicks() / TICKS_PER_SECOND));
-        broadcast(format(AnnouncementTemplates.ABILITY_COOLDOWN_STARTED, ph));
+        broadcast(format(getTemplate("ability_cooldown_started", AnnouncementTemplates.ABILITY_COOLDOWN_STARTED), ph));
     }
 
     private void onCooldownEnded(AbilityCooldownEndedEvent event) {
-        broadcast(AnnouncementTemplates.ABILITY_COOLDOWN_ENDED);
+        broadcast(getTemplate("ability_cooldown_ended", AnnouncementTemplates.ABILITY_COOLDOWN_ENDED));
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Returns the template for {@code key} from the runtime map, or
+     * {@code fallback} (the hardcoded constant) if absent.
+     */
+    private String getTemplate(String key, String fallback) {
+        String value = templates.get(key);
+        return value != null ? value : fallback;
+    }
 
     /**
      * Resolves a player's display name from their UUID.

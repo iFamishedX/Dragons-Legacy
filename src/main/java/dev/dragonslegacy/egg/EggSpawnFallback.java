@@ -20,16 +20,28 @@ import org.jetbrains.annotations.Nullable;
 public class EggSpawnFallback {
 
     private final DragonEggEventBus eventBus;
+    private boolean enabled = true;
 
     EggSpawnFallback(DragonEggEventBus eventBus) {
         this.eventBus = eventBus;
     }
 
+    /** Enables or disables the spawn-fallback behaviour. */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /** Returns {@code true} if spawn-fallback is currently enabled. */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     /**
      * Checks whether the canonical egg exists anywhere. If not, spawns one at the
-     * overworld spawn point.
+     * overworld spawn point.  Does nothing when {@link #isEnabled()} is {@code false}.
      */
     public void ensureEggExists(MinecraftServer server) {
+        if (!enabled) return;
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) return;
         EggTracker tracker = legacy.getEggTracker();
