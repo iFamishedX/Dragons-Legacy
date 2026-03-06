@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.dragonslegacy.mixin",
   "compatibilityLevel": "JAVA_21",
+  "refmap": "dragonslegacy.refmap.json",
   "mixins": [
     "AbstractContainerMenuMixin",
     "AbstractHorseMixin",

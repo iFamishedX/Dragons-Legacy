@@ -51,10 +51,10 @@ public class Actions {
     private static final Map<String, Supplier<String>> placeholders = Map.of(
         "bearer_id", () -> {
             Data data = DragonEggAPI.getData();
-            return data != null && data.playerUUID != null ? data.playerUUID.toString() : "@a[predicate=deg:is_bearer]";
+            return data != null && data.playerUUID != null ? data.playerUUID.toString() : "@a[predicate=dragonslegacy:is_bearer]";
         },
         "bearer", () -> APIUtils.getBearer().getString(),
-        "nearby", () -> "@a[predicate=deg:is_nearby]"
+        "nearby", () -> "@a[predicate=dragonslegacy:is_nearby]"
     );
 
     public static void register() {

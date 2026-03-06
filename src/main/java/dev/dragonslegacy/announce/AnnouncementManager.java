@@ -51,7 +51,7 @@ public class AnnouncementManager {
      * after config is loaded.  Falls back to the hardcoded {@link AnnouncementTemplates} constants
      * when a key is absent.
      */
-    private Map<String, String> templates = new new HashMap<>();
+    private Map<String, String> templates = new HashMap<>();
 
     // -------------------------------------------------------------------------
     // Configuration
@@ -64,7 +64,7 @@ public class AnnouncementManager {
      * @param templates the new template map (may be {@code null} to reset to defaults)
      */
     public void setTemplates(Map<String, String> templates) {
-        this.templates = templates != null ? templates : new new HashMap<>();
+        this.templates = templates != null ? templates : new HashMap<>();
     }
 
     // -------------------------------------------------------------------------
@@ -130,7 +130,7 @@ public class AnnouncementManager {
     // -------------------------------------------------------------------------
 
     private void onEggPickedUp(EggPickedUpEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("player", event.getPlayer().getGameProfile().getName());
         broadcast(format(getTemplate("egg_picked_up", AnnouncementTemplates.EGG_PICKED_UP), ph));
     }
@@ -140,7 +140,7 @@ public class AnnouncementManager {
     }
 
     private void onEggPlaced(EggPlacedEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("x", String.valueOf(event.getPosition().getX()));
         ph.put("y", String.valueOf(event.getPosition().getY()));
         ph.put("z", String.valueOf(event.getPosition().getZ()));
@@ -152,14 +152,14 @@ public class AnnouncementManager {
         if (newBearer == null) {
             broadcast(getTemplate("bearer_cleared", AnnouncementTemplates.BEARER_CLEARED));
         } else {
-            Map<String, String> ph = new new HashMap<>();
+            Map<String, String> ph = new HashMap<>();
             ph.put("player", resolvePlayerName(newBearer));
             broadcast(format(getTemplate("bearer_changed", AnnouncementTemplates.BEARER_CHANGED), ph));
         }
     }
 
     private void onEggTeleportedToSpawn(EggTeleportedToSpawnEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("x", String.valueOf((int) event.getSpawnPosition().x));
         ph.put("y", String.valueOf((int) event.getSpawnPosition().y));
         ph.put("z", String.valueOf((int) event.getSpawnPosition().z));
@@ -171,20 +171,20 @@ public class AnnouncementManager {
     // -------------------------------------------------------------------------
 
     private void onAbilityActivated(AbilityActivatedEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("player", resolvePlayerName(event.getPlayerUUID()));
         ph.put("seconds", String.valueOf(event.getDuration() / TICKS_PER_SECOND));
         broadcast(format(getTemplate("ability_activated", AnnouncementTemplates.ABILITY_ACTIVATED), ph));
     }
 
     private void onAbilityExpired(AbilityExpiredEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("player", resolvePlayerName(event.getPlayerUUID()));
         broadcast(format(getTemplate("ability_expired", AnnouncementTemplates.ABILITY_EXPIRED), ph));
     }
 
     private void onCooldownStarted(AbilityCooldownStartedEvent event) {
-        Map<String, String> ph = new new HashMap<>();
+        Map<String, String> ph = new HashMap<>();
         ph.put("seconds", String.valueOf(event.getCooldownTicks() / TICKS_PER_SECOND));
         broadcast(format(getTemplate("ability_cooldown_started", AnnouncementTemplates.ABILITY_COOLDOWN_STARTED), ph));
     }
