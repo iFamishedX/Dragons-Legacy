@@ -20,7 +20,6 @@ public class DragonsLegacyMod implements ModInitializer {
     public static final String MOD_ID_ALIAS = "deg";
     public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static final boolean BLUEMAP_INSTALLED = FabricLoader.getInstance().isModLoaded("bluemap");
     public static Config CONFIG;
     @Nullable
     public static MinecraftServer server;
@@ -53,10 +52,6 @@ public class DragonsLegacyMod implements ModInitializer {
         Actions.init();
 
         MCIntegration.init();
-        if (BLUEMAP_INSTALLED) {
-            LOGGER.info("BlueMap detected, enabling BlueMap integration");
-            BlueMapIntegration.init();
-        }
 
         // Register Dragon's Legacy Fabric event hooks
         EggEventHandler.register();

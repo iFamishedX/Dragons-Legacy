@@ -40,16 +40,6 @@ public class Config {
 
     @Comment("The radius that is used to randomize the dragon egg position.\nDefault: 25")
     public float searchRadius = 25;
-    @Comment("The name of the BlueMap marker")
-    public String markerName = "Dragon Egg";
-    @Comment("The description of the BlueMap area marker")
-    public String areaMarkerDescription = "The dragon egg is somewhere in this area.";
-    @Comment("The description of the BlueMap point marker")
-    public String pointMarkerDescription = "Come and get it!";
-    @Comment("The URL of the BlueMap point marker icon")
-    public String pointMarkerIcon = "https://minecraft.wiki/images/thumb/Dragon_Egg_JE4.png/150px-Dragon_Egg_JE4.png";
-    @Comment("The color of the BlueMap marker as a decimal value.\nDefault: 2818132 (Purple)")
-    public int markerColor = 0x2b0054; // Purple
     @Comment("Whether to prevent the Dragon Egg from entering an Ender Chest. " +
              "\nThis will also check the contents of container items like Shulker Boxes and Bundles.")
     public boolean blockEnderChest = true;

@@ -13,7 +13,6 @@ base {
 repositories {
     mavenCentral()
     maven { url "https://maven.nucleoid.xyz/" }
-    maven { url 'https://repo.bluecolored.de/releases' }
 }
 
 dependencies {
@@ -27,9 +26,6 @@ dependencies {
     // included mods
     include modImplementation("me.lucko:fabric-permissions-api:${project.permissions_api_version}")
     include modImplementation("eu.pb4:placeholder-api:${project.placeholder_api_version}")
-
-    // optional mods
-    compileOnly "de.bluecolored:bluemap-api:${project.bluemap_api_version}"
 
     // other dependencies
     shadow implementation("org.spongepowered:configurate-hocon:${project.configurate_version}")

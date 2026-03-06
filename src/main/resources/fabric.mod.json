@@ -27,8 +27,5 @@
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
     "java": ">=21"
-  },
-  "suggests": {
-    "bluemap": "~5"
   }
 }
