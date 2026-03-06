@@ -1,6 +1,6 @@
 package dev.dragonslegacy.egg.event;
 
-import de.arvitus.dragonegggame.DragonEggGame;
+import dev.dragonslegacy.DragonsLegacyMod;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -59,7 +59,7 @@ public class DragonEggEventBus {
                     try {
                         ((Consumer<T>) consumer).accept(event);
                     } catch (Exception e) {
-                        DragonEggGame.LOGGER.warn(
+                        DragonsLegacyMod.LOGGER.warn(
                             "[Dragon's Legacy] Exception in event listener for {}: {}",
                             event.getClass().getSimpleName(), e.getMessage(), e
                         );

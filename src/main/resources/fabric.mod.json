@@ -1,26 +1,26 @@
 {
   "schemaVersion": 1,
-  "id": "dragonegggame",
+  "id": "dragonslegacy",
   "version": "${version}",
-  "name": "DragonEggGame",
-  "description": "Dragon Egg Game",
+  "name": "Dragon's Legacy",
+  "description": "A server-side relic system built around the Dragon Egg.",
   "authors": [
     "arvitus"
   ],
   "contact": {
-    "website": "https://github.com/arvitus/DragonEggGame",
-    "source": "https://github.com/arvitus/DragonEggGame"
+    "website": "https://github.com/iFamishedX/DragonEggGame",
+    "source": "https://github.com/iFamishedX/DragonEggGame"
   },
   "license": "GPL-3.0",
   "icon": "assets/icon.webp",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "de.arvitus.dragonegggame.DragonEggGame"
+      "dev.dragonslegacy.DragonsLegacyMod"
     ]
   },
   "mixins": [
-    "dragonegggame.mixins.json"
+    "dragonslegacy.mixins.json"
   ],
   "depends": {
     "minecraft": ">=${minecraft_version}",

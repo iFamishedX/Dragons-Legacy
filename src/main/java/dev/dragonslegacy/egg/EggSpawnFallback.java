@@ -1,7 +1,7 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.DragonEggGame;
-import de.arvitus.dragonegggame.utils.Utils;
+import dev.dragonslegacy.DragonsLegacyMod;
+import dev.dragonslegacy.utils.Utils;
 import dev.dragonslegacy.egg.event.DragonEggEventBus;
 import dev.dragonslegacy.egg.event.EggTeleportedToSpawnEvent;
 import net.minecraft.server.MinecraftServer;
@@ -47,11 +47,11 @@ public class EggSpawnFallback {
             spawned.setGlowingTag(true);
             Vec3 pos = spawned.position();
             eventBus.publish(new EggTeleportedToSpawnEvent(pos));
-            DragonEggGame.LOGGER.info(
+            DragonsLegacyMod.LOGGER.info(
                 "[Dragon's Legacy] Spawned {} egg(s) at spawn ({}).", count, pos
             );
         } else {
-            DragonEggGame.LOGGER.warn(
+            DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] Could not spawn egg at spawn – world may not be ready."
             );
         }
@@ -71,7 +71,7 @@ public class EggSpawnFallback {
             existing.teleportTo(spawnPos.x, spawnPos.y, spawnPos.z);
             existing.setGlowingTag(true);
             eventBus.publish(new EggTeleportedToSpawnEvent(spawnPos));
-            DragonEggGame.LOGGER.info("[Dragon's Legacy] Teleported egg item entity to spawn.");
+            DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Teleported egg item entity to spawn.");
             return;
         }
 

@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.dragonslegacy.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractContainerMenuMixin",
+    "AbstractHorseMixin",
+    "BaseContainerBlockEntityMixin",
+    "BlockItemMixin",
+    "CompoundContainerMixin",
+    "ContainerEntityMixin",
+    "EntityMixin",
+    "HopperBlockEntityMixin",
+    "HorseScreenHandlerMixin",
+    "InventoryMixin",
+    "ItemEntityMixin",
+    "ServerLevelMixin",
+    "SlotMixin"
+  ],
+  "client": [
+  ],
+  "server": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

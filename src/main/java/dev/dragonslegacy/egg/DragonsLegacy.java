@@ -1,6 +1,6 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.DragonEggGame;
+import dev.dragonslegacy.DragonsLegacyMod;
 import dev.dragonslegacy.egg.event.DragonEggEventBus;
 import net.minecraft.server.MinecraftServer;
 import org.jetbrains.annotations.Nullable;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * Singleton coordinator for all Dragon's Legacy subsystems.
  *
  * <p>Call {@link #init(MinecraftServer)} once when the server starts (from
- * {@link DragonEggGame#onInitialize()}) and {@link #shutdown()} when it stops.
+ * {@link DragonsLegacyMod#onInitialize()}) and {@link #shutdown()} when it stops.
  */
 public class DragonsLegacy {
 
@@ -67,7 +67,7 @@ public class DragonsLegacy {
         }
 
         INSTANCE = legacy;
-        DragonEggGame.LOGGER.info("[Dragon's Legacy] Subsystem initialised.");
+        DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Subsystem initialised.");
     }
 
     /**
@@ -77,7 +77,7 @@ public class DragonsLegacy {
     public void shutdown() {
         eventBus.clearListeners();
         INSTANCE = null;
-        DragonEggGame.LOGGER.info("[Dragon's Legacy] Subsystem shut down.");
+        DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Subsystem shut down.");
     }
 
     // ------------------------------------------------------------------

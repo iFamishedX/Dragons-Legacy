@@ -1,6 +1,6 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.DragonEggGame;
+import dev.dragonslegacy.DragonsLegacyMod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -64,7 +64,7 @@ public class EggAntiDupeEngine {
         int totalCanonical = playerStacks.size() + droppedItems.size();
         if (totalCanonical <= 1) return; // no duplicates
 
-        DragonEggGame.LOGGER.warn(
+        DragonsLegacyMod.LOGGER.warn(
             "[Dragon's Legacy] Found {} canonical egg(s) – resolving duplicates (keeping 1).",
             totalCanonical
         );
