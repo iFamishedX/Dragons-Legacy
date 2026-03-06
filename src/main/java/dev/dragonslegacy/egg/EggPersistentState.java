@@ -36,17 +36,17 @@ public class EggPersistentState extends SavedData {
     // -------------------------------------------------------------------------
 
     /** Factory used by {@link net.minecraft.world.level.storage.DimensionDataStorage}. */
-    public static final SavedData.Factory<EggPersistentState> FACTORY =
-        new SavedData.Factory<>(EggPersistentState::new, EggPersistentState::fromTag);
+    public static final SavedData.DataProvider<EggPersistentState> FACTORY =
+        new SavedData.DataProvider<>(EggPersistentState::new, EggPersistentState::fromTag);
 
     /** Deserialises from NBT (called by the SavedData infrastructure). */
     public static EggPersistentState fromTag(CompoundTag tag, HolderLookup.Provider registries) {
         EggPersistentState state = new EggPersistentState();
         if (tag.contains(KEY_EGG_ID)) {
-            state.canonicalEggId = tag.getUUID(KEY_EGG_ID);
+            state.canonicalEggId = loadUUID(tag, KEY_EGG_ID);
         }
         if (tag.contains(KEY_BEARER_UUID)) {
-            state.bearerUUID = tag.getUUID(KEY_BEARER_UUID);
+            state.bearerUUID = loadUUID(tag, KEY_BEARER_UUID);
         }
         state.bearerLastSeenTick = tag.getLong(KEY_BEARER_LAST_SEEN);
         return state;
@@ -54,11 +54,24 @@ public class EggPersistentState extends SavedData {
 
     /** Serialises to NBT. */
     @Override
-    public @NotNull CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        if (canonicalEggId != null)    tag.putUUID(KEY_EGG_ID, canonicalEggId);
-        if (bearerUUID != null)        tag.putUUID(KEY_BEARER_UUID, bearerUUID);
+    public @NotNull CompoundTag save(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        if (canonicalEggId != null)    storeUUID(tag, KEY_EGG_ID, canonicalEggId);
+        if (bearerUUID != null)        storeUUID(tag, KEY_BEARER_UUID, bearerUUID);
         tag.putLong(KEY_BEARER_LAST_SEEN, bearerLastSeenTick);
         return tag;
+    }
+
+    // -------------------------------------------------------------------------
+    // UUID serialisation helpers (CompoundTag.putUUID / getUUID removed in 1.21.11)
+    // -------------------------------------------------------------------------
+
+    private static void storeUUID(CompoundTag tag, String key, UUID value) {
+        tag.putString(key, value.toString());
+    }
+
+    private static UUID loadUUID(CompoundTag tag, String key) {
+        return UUID.fromString(tag.getString(key));
     }
 
     // -------------------------------------------------------------------------

@@ -99,9 +99,9 @@ public final class DragonHungerAbility {
     private static void applyEffects(ServerPlayer player) {
         int duration = AbilityTimers.DEFAULT_DURATION + 20; // slight buffer
         // Strength II – ambient so other players' potions can override visually
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, duration, 1, true, false));
+        player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, duration, 1, true, false));
         // Speed II – same rationale
-        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, duration, 1, true, false));
+        player.addEffect(new MobEffectInstance(MobEffects.SPEED, duration, 1, true, false));
         // Hunger II – visible particles to signal the cost
         player.addEffect(new MobEffectInstance(MobEffects.HUNGER, duration, 1, false, true));
     }
@@ -137,8 +137,8 @@ public final class DragonHungerAbility {
     }
 
     private static void removeEffects(ServerPlayer player) {
-        player.removeEffect(MobEffects.DAMAGE_BOOST);
-        player.removeEffect(MobEffects.MOVEMENT_SPEED);
+        player.removeEffect(MobEffects.STRENGTH);
+        player.removeEffect(MobEffects.SPEED);
         player.removeEffect(MobEffects.HUNGER);
     }
 

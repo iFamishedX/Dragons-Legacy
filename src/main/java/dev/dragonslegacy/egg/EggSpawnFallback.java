@@ -110,8 +110,10 @@ public class EggSpawnFallback {
 
     private @Nullable ItemEntity findEggItemEntity(MinecraftServer server) {
         for (ServerLevel level : server.getAllLevels()) {
-            for (ItemEntity item : level.getEntitiesOfClass(
-                ItemEntity.class, level.getWorldBorder().createBoundingBox())) {
+            net.minecraft.world.phys.AABB worldBounds = new net.minecraft.world.phys.AABB(
+                level.getWorldBorder().getMinX(), level.getMinBuildHeight(), level.getWorldBorder().getMinZ(),
+                level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ());
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, worldBounds)) {
                 if (item.getItem().is(Items.DRAGON_EGG)) return item;
             }
         }

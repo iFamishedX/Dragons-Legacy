@@ -4,9 +4,11 @@ import dev.dragonslegacy.DragonsLegacyMod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,14 +49,24 @@ public class EggAntiDupeEngine {
         List<ItemEntity> droppedItems  = new ArrayList<>();
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            collectCanonicalEggs(player.getInventory().items, playerStacks);
-            collectCanonicalEggs(player.getInventory().armor, playerStacks);
-            collectCanonicalEggs(player.getInventory().offhand, playerStacks);
+            // Main inventory
+            net.minecraft.world.entity.player.Inventory inv = player.getInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                collectCanonicalEggs(inv.getItem(i), playerStacks);
+            }
+            // Armor and offhand (no longer part of the Inventory container in 1.21.11)
+            for (EquipmentSlot slot : new EquipmentSlot[]{
+                    EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS,
+                    EquipmentSlot.FEET, EquipmentSlot.OFFHAND}) {
+                collectCanonicalEggs(player.getItemBySlot(slot), playerStacks);
+            }
         }
 
         for (ServerLevel level : server.getAllLevels()) {
-            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
-                level.getWorldBorder().createBoundingBox())) {
+            AABB worldBounds = new AABB(
+                level.getWorldBorder().getMinX(), level.getMinBuildHeight(), level.getWorldBorder().getMinZ(),
+                level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ());
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, worldBounds)) {
                 if (identityManager.isCanonicalEgg(item.getItem())) {
                     droppedItems.add(item);
                 }
@@ -86,6 +98,10 @@ public class EggAntiDupeEngine {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private void collectCanonicalEggs(ItemStack stack, List<ItemStack> result) {
+        if (identityManager.isCanonicalEgg(stack)) result.add(stack);
+    }
 
     private void collectCanonicalEggs(List<ItemStack> inventory, List<ItemStack> result) {
         for (ItemStack stack : inventory) {

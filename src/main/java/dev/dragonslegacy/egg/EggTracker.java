@@ -65,7 +65,7 @@ public class EggTracker {
         placedLocation    = null;
 
         persistentState.setBearerUUID(player.getUUID());
-        persistentState.setBearerLastSeenTick(player.serverLevel().getGameTime());
+        persistentState.setBearerLastSeenTick(((ServerLevel) player.level()).getGameTime());
 
         eventBus.publish(new EggPickedUpEvent(player));
         if (!player.getUUID().equals(oldBearer)) {
@@ -115,7 +115,9 @@ public class EggTracker {
         // 2 – check dropped items in all worlds
         for (ServerLevel level : server.getAllLevels()) {
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class,
-                level.getWorldBorder().createBoundingBox())) {
+                new net.minecraft.world.phys.AABB(
+                    level.getWorldBorder().getMinX(), level.getMinBuildHeight(), level.getWorldBorder().getMinZ(),
+                    level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()))) {
                 ItemStack stack = item.getItem();
                 if (stack.is(Items.DRAGON_EGG)) {
                     updateEggDropped(item);
