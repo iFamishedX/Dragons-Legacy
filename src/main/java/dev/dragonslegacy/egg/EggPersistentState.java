@@ -35,27 +35,32 @@ public class EggPersistentState extends SavedData {
     // SavedDataType / serialisation
     // -------------------------------------------------------------------------
 
-    /** Type registration used by {@link net.minecraft.world.level.storage.DimensionDataStorage}. */
-    public static final SavedDataType<EggPersistentState> TYPE = new SavedDataType<>(
-        "dragons_legacy_egg",
-        ctx -> new EggPersistentState(),
-        ctx -> RecordCodecBuilder.create(instance -> instance.group(
+    /** Codec used for serialisation – extracted to give the compiler explicit type information. */
+    private static final Codec<EggPersistentState> CODEC =
+        RecordCodecBuilder.<EggPersistentState>create(instance -> instance.group(
             UUIDUtil.CODEC.optionalFieldOf(KEY_EGG_ID)
-                .forGetter(s -> Optional.ofNullable(s.canonicalEggId)),
+                .forGetter((EggPersistentState s) -> Optional.ofNullable(s.canonicalEggId)),
             UUIDUtil.CODEC.optionalFieldOf(KEY_BEARER_UUID)
-                .forGetter(s -> Optional.ofNullable(s.bearerUUID)),
+                .forGetter((EggPersistentState s) -> Optional.ofNullable(s.bearerUUID)),
             Codec.LONG.optionalFieldOf(KEY_BEARER_LAST_SEEN, -1L)
-                .forGetter(s -> s.bearerLastSeenTick)
-        ).apply(instance, EggPersistentState::create))
-    );
+                .forGetter((EggPersistentState s) -> s.bearerLastSeenTick)
+        ).apply(instance, EggPersistentState::decode));
 
-    private static EggPersistentState create(
+    /** Type registration used by {@link net.minecraft.world.level.storage.DimensionDataStorage}. */
+    public static final SavedDataType<EggPersistentState> TYPE =
+        new SavedDataType<EggPersistentState>(
+            "dragons_legacy_egg",
+            ctx -> new EggPersistentState(),
+            ctx -> CODEC
+        );
+
+    private static EggPersistentState decode(
             Optional<UUID> canonicalEggId,
             Optional<UUID> bearerUUID,
             long bearerLastSeenTick) {
         EggPersistentState state = new EggPersistentState();
-        state.canonicalEggId    = canonicalEggId.orElse(null);
-        state.bearerUUID        = bearerUUID.orElse(null);
+        state.canonicalEggId     = canonicalEggId.orElse(null);
+        state.bearerUUID         = bearerUUID.orElse(null);
         state.bearerLastSeenTick = bearerLastSeenTick;
         return state;
     }

@@ -112,8 +112,8 @@ public class EggSpawnFallback {
         for (ServerLevel level : server.getAllLevels()) {
             net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
             net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
-                border.getMinX(), level.getMinBuildHeight(), border.getMinZ(),
-                border.getMaxX(), level.getMaxBuildHeight(), border.getMaxZ());
+                border.getMinX(), -4096.0, border.getMinZ(),
+                border.getMaxX(), 4096.0, border.getMaxZ());
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                 if (item.getItem().is(Items.DRAGON_EGG)) return item;
             }

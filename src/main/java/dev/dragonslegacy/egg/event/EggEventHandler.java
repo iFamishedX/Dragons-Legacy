@@ -131,9 +131,8 @@ public class EggEventHandler {
             EggTracker tracker = legacy.getEggTracker();
             // After breaking, the egg becomes an item entity; let the entity-load event handle the state
             // For now just scan to update state
-            if (player instanceof ServerPlayer serverPlayer) {
-                tracker.scanAndLocateEgg(serverPlayer.getServer());
-            }
+            net.minecraft.server.MinecraftServer srv = world.getServer();
+            if (srv != null) tracker.scanAndLocateEgg(srv);
         });
 
         // Watch item entities that are dying (lava, void, despawn) and protect egg
