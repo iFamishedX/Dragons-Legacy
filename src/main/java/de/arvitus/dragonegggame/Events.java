@@ -4,6 +4,7 @@ import de.arvitus.dragonegggame.api.DragonEggAPI;
 import de.arvitus.dragonegggame.config.Data;
 import de.arvitus.dragonegggame.utils.ScheduledEvent;
 import de.arvitus.dragonegggame.utils.Utils;
+import dev.dragonslegacy.egg.DragonsLegacy;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -36,6 +37,8 @@ public class Events {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             DragonEggGame.server = server;
             DragonEggAPI.init();
+            // Initialise Dragon's Legacy subsystem
+            DragonsLegacy.init(server);
         });
 
         ServerLifecycleEvents.SERVER_STOPPED.register(server ->

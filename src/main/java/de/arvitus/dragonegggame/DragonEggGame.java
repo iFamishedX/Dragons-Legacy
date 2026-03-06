@@ -2,6 +2,7 @@ package de.arvitus.dragonegggame;
 
 import de.arvitus.dragonegggame.config.Config;
 import de.arvitus.dragonegggame.features.Actions;
+import dev.dragonslegacy.egg.event.EggEventHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
@@ -54,5 +55,8 @@ public class DragonEggGame implements ModInitializer {
             LOGGER.info("BlueMap detected, enabling BlueMap integration");
             BlueMapIntegration.init();
         }
+
+        // Register Dragon's Legacy Fabric event hooks
+        EggEventHandler.register();
     }
 }
