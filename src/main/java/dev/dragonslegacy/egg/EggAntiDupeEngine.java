@@ -103,12 +103,6 @@ public class EggAntiDupeEngine {
         if (identityManager.isCanonicalEgg(stack)) result.add(stack);
     }
 
-    private void collectCanonicalEggs(List<ItemStack> inventory, List<ItemStack> result) {
-        for (ItemStack stack : inventory) {
-            if (identityManager.isCanonicalEgg(stack)) result.add(stack);
-        }
-    }
-
     /** Checks whether an item entity carries a vanilla Dragon Egg (any count). */
     static boolean isVanillaDragonEgg(ItemEntity item) {
         return item.getItem().is(Items.DRAGON_EGG);
