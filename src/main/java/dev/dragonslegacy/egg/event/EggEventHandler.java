@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.Blocks;
  * Dragon's Legacy manager classes.
  *
  * <p>All hooks are server-side only and complement (not replace) the hooks
- * already registered by {@link de.arvitus.dragonegggame.Events}.
+ * already registered by {@link dev.dragonslegacy.Events}.
  */
 public class EggEventHandler {
 

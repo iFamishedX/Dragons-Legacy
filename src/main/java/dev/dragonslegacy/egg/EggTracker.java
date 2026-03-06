@@ -1,6 +1,6 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.utils.Utils;
+import dev.dragonslegacy.utils.Utils;
 import dev.dragonslegacy.egg.event.DragonEggEventBus;
 import dev.dragonslegacy.egg.event.EggBearerChangedEvent;
 import dev.dragonslegacy.egg.event.EggDroppedEvent;

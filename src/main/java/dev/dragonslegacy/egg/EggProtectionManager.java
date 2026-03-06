@@ -1,7 +1,7 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.DragonEggGame;
-import de.arvitus.dragonegggame.utils.Utils;
+import dev.dragonslegacy.DragonsLegacyMod;
+import dev.dragonslegacy.utils.Utils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -41,7 +41,7 @@ public class EggProtectionManager {
             ? item.getItem().getCount()
             : Utils.countDragonEgg(item.getItem());
 
-        DragonEggGame.LOGGER.warn(
+        DragonsLegacyMod.LOGGER.warn(
             "[Dragon's Legacy] Egg item entity is dying unexpectedly – respawning {} egg(s) at spawn.",
             count
         );
@@ -78,7 +78,7 @@ public class EggProtectionManager {
             if (level.getBlockState(pos).is(Blocks.DRAGON_EGG)) return; // still there
         }
 
-        DragonEggGame.LOGGER.warn(
+        DragonsLegacyMod.LOGGER.warn(
             "[Dragon's Legacy] Placed egg block at {} is gone – respawning at spawn.", pos.toShortString()
         );
         spawnFallback.ensureEggAtSpawn(server, 1);
@@ -95,7 +95,7 @@ public class EggProtectionManager {
         EggState state = tracker.getCurrentState();
 
         if (state == EggState.UNKNOWN) {
-            DragonEggGame.LOGGER.warn(
+            DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] Egg state is UNKNOWN – triggering spawn fallback."
             );
             spawnFallback.ensureEggAtSpawn(server, 1);

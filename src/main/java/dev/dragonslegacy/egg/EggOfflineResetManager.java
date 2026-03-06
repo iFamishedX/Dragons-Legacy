@@ -1,6 +1,6 @@
 package dev.dragonslegacy.egg;
 
-import de.arvitus.dragonegggame.DragonEggGame;
+import dev.dragonslegacy.DragonsLegacyMod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +39,7 @@ public class EggOfflineResetManager {
         if (bearer != null && bearer.equals(player.getUUID())) {
             bearerLastOnlineMs = System.currentTimeMillis();
             persistentState.setBearerLastSeenTick(player.serverLevel().getGameTime());
-            DragonEggGame.LOGGER.info(
+            DragonsLegacyMod.LOGGER.info(
                 "[Dragon's Legacy] Bearer {} came online – resetting offline timer.", player.getName().getString()
             );
         }
@@ -74,7 +74,7 @@ public class EggOfflineResetManager {
 
         double daysOffline = getDaysOffline();
         if (daysOffline >= getOfflineThresholdDays()) {
-            DragonEggGame.LOGGER.info(
+            DragonsLegacyMod.LOGGER.info(
                 "[Dragon's Legacy] Bearer {} has been offline for {} days – clearing bearer.",
                 bearer, String.format("%.1f", daysOffline)
             );
@@ -106,6 +106,6 @@ public class EggOfflineResetManager {
     private void clearBearer() {
         persistentState.setBearerUUID(null);
         bearerLastOnlineMs = -1L;
-        DragonEggGame.LOGGER.info("[Dragon's Legacy] Bearer cleared due to prolonged absence.");
+        DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Bearer cleared due to prolonged absence.");
     }
 }
