@@ -1,6 +1,7 @@
 package dev.dragonslegacy.egg;
 
 import dev.dragonslegacy.DragonsLegacyMod;
+import dev.dragonslegacy.ability.AbilityEngine;
 import dev.dragonslegacy.egg.event.DragonEggEventBus;
 import net.minecraft.server.MinecraftServer;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +27,7 @@ public class DragonsLegacy {
     private final EggAntiDupeEngine      eggAntiDupeEngine;
     private final EggProtectionManager   eggProtectionManager;
     private final EggOfflineResetManager eggOfflineResetManager;
+    private final AbilityEngine          abilityEngine;
 
     // ------------------------------------------------------------------
     // Construction (private – use getInstance() after init())
@@ -40,6 +42,7 @@ public class DragonsLegacy {
         this.eggAntiDupeEngine    = new EggAntiDupeEngine(identityManager);
         this.eggProtectionManager = new EggProtectionManager(eggSpawnFallback);
         this.eggOfflineResetManager = new EggOfflineResetManager(persistentState);
+        this.abilityEngine        = new AbilityEngine();
     }
 
     // ------------------------------------------------------------------
@@ -67,6 +70,7 @@ public class DragonsLegacy {
         }
 
         INSTANCE = legacy;
+        legacy.abilityEngine.init(server);
         DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Subsystem initialised.");
     }
 
@@ -104,4 +108,5 @@ public class DragonsLegacy {
     public EggAntiDupeEngine      getEggAntiDupeEngine()      { return eggAntiDupeEngine; }
     public EggProtectionManager   getEggProtectionManager()   { return eggProtectionManager; }
     public EggOfflineResetManager getEggOfflineResetManager() { return eggOfflineResetManager; }
+    public AbilityEngine          getAbilityEngine()          { return abilityEngine; }
 }

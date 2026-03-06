@@ -6,11 +6,13 @@ import dev.dragonslegacy.egg.EggOfflineResetManager;
 import dev.dragonslegacy.egg.EggProtectionManager;
 import dev.dragonslegacy.egg.EggSpawnFallback;
 import dev.dragonslegacy.egg.EggTracker;
+import dev.dragonslegacy.ability.AbilityEngine;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -42,6 +44,7 @@ public class EggEventHandler {
         registerTickHooks();
         registerPlayerHooks();
         registerWorldHooks();
+        registerAbilityHooks();
     }
 
     // -------------------------------------------------------------------------
@@ -75,6 +78,9 @@ public class EggEventHandler {
             if (legacy == null) return;
 
             int tick = server.getTickCount();
+
+            // Tick the ability engine every server tick
+            legacy.getAbilityEngine().tick(server);
 
             if (tick % TICK_INTERVAL == 0) {
                 EggOfflineResetManager offlineReset = legacy.getEggOfflineResetManager();
@@ -145,6 +151,69 @@ public class EggEventHandler {
 
                 EggProtectionManager protection = legacy.getEggProtectionManager();
                 protection.onEggItemEntityAboutToDie(item);
+            }
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Ability hooks
+    // -------------------------------------------------------------------------
+
+    /**
+     * Registers hooks that drive the {@link AbilityEngine}:
+     * <ul>
+     *   <li>Bearer change → reset cooldown / deactivate old bearer</li>
+     *   <li>Equipment change → activate when dragon head equipped, deactivate when removed</li>
+     * </ul>
+     */
+    private static void registerAbilityHooks() {
+        // Subscribe to bearer-changed events on the event bus (registered after SERVER_STARTED)
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            DragonsLegacy legacy = DragonsLegacy.getInstance();
+            if (legacy == null) return;
+
+            legacy.getEventBus().subscribe(EggBearerChangedEvent.class, event -> {
+                DragonsLegacy current = DragonsLegacy.getInstance();
+                AbilityEngine engine = current == null ? null : current.getAbilityEngine();
+                if (engine == null) return;
+
+                // Deactivate for the old bearer if the ability was active
+                if (event.getPreviousBearerUUID() != null) {
+                    ServerPlayer oldBearer = server.getPlayerList().getPlayer(event.getPreviousBearerUUID());
+                    if (oldBearer != null) {
+                        engine.deactivateDragonHunger(oldBearer, "lost_bearer_status");
+                    }
+                }
+
+                // Reset cooldown so the new bearer can activate immediately
+                if (event.getNewBearerUUID() != null) {
+                    engine.resetCooldownIfNeeded();
+                }
+            });
+        });
+
+        // Equipment change: activate when dragon head is worn, deactivate when removed
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.EQUIPMENT_CHANGE.register(
+            (livingEntity, slot, previousStack, currentStack) -> {
+                if (slot != EquipmentSlot.HEAD) return;
+                if (!(livingEntity instanceof ServerPlayer player)) return;
+
+                DragonsLegacy legacy = DragonsLegacy.getInstance();
+                if (legacy == null) return;
+
+                AbilityEngine engine = legacy.getAbilityEngine();
+                EggTracker tracker   = legacy.getEggTracker();
+
+                boolean isBearer = player.getUUID().equals(tracker.getCurrentBearer());
+
+                boolean nowWearingDragonHead  = currentStack.is(Items.DRAGON_HEAD);
+                boolean wasWearingDragonHead  = previousStack.is(Items.DRAGON_HEAD);
+
+                if (nowWearingDragonHead && isBearer) {
+                    engine.activateDragonHunger(player);
+                } else if (wasWearingDragonHead && !nowWearingDragonHead) {
+                    engine.deactivateDragonHunger(player, "head_removed");
+                }
             }
         );
     }
