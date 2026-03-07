@@ -62,14 +62,12 @@ public class AbilityConfig {
         health.id = "minecraft:max_health";
         health.amount = 20.0;
         health.operation = "add_value";
-        health.uuid = "00000000-0000-0000-0000-000000000010";
         list.add(health);
 
         AttributeEntry damage = new AttributeEntry();
         damage.id = "minecraft:attack_damage";
         damage.amount = 4.0;
         damage.operation = "add_value";
-        damage.uuid = "00000000-0000-0000-0000-000000000011";
         list.add(damage);
 
         return list;

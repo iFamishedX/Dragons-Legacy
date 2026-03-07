@@ -6,8 +6,13 @@ import dev.dragonslegacy.ability.PassiveEffectsEngine;
 import dev.dragonslegacy.announce.AnnouncementManager;
 import dev.dragonslegacy.config.AbilityConfig;
 import dev.dragonslegacy.config.AnnouncementsConfig;
+import dev.dragonslegacy.config.AttributeEntry;
+import dev.dragonslegacy.config.ConfigAttributeParser;
+import dev.dragonslegacy.config.ConfigEffectParser;
 import dev.dragonslegacy.config.ConfigManager;
+import dev.dragonslegacy.config.EffectEntry;
 import dev.dragonslegacy.config.MainConfig;
+import dev.dragonslegacy.config.PassiveEffectsConfig;
 import dev.dragonslegacy.config.SpawnConfig;
 import dev.dragonslegacy.egg.event.DragonEggEventBus;
 import net.minecraft.server.MinecraftServer;
@@ -140,6 +145,39 @@ public class DragonsLegacy {
         AnnouncementsConfig ann = DragonsLegacyMod.configManager.getAnnouncements();
         announcementManager.setTemplates(ann.templates);
         announcementManager.setUseMiniMessage(ann.useMiniMessage);
+
+        validateConfigs();
+    }
+
+    /**
+     * Eagerly validates all effect and attribute entries in the loaded configs
+     * by resolving them against the Minecraft registries.  Any unknown or invalid
+     * entry is logged as a warning at this point so server owners see problems
+     * immediately on startup/reload rather than only when a player triggers an
+     * effect.
+     */
+    private void validateConfigs() {
+        AbilityConfig ability = DragonsLegacyMod.configManager.getAbility();
+        PassiveEffectsConfig passive = DragonsLegacyMod.configManager.getPassiveEffects();
+
+        validateEffects(ability.effects);
+        validateAttributes(ability.attributes);
+        validateEffects(passive.effects);
+        validateAttributes(passive.attributes);
+    }
+
+    private static void validateEffects(java.util.List<EffectEntry> entries) {
+        if (entries == null) return;
+        for (EffectEntry e : entries) {
+            ConfigEffectParser.parseEffect(e);
+        }
+    }
+
+    private static void validateAttributes(java.util.List<AttributeEntry> entries) {
+        if (entries == null) return;
+        for (AttributeEntry a : entries) {
+            ConfigAttributeParser.parseAttribute(a);
+        }
     }
 
     /**

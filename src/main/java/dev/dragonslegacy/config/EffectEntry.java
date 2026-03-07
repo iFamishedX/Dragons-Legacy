@@ -12,7 +12,11 @@ import org.spongepowered.configurate.objectmapping.meta.Setting;
 @ConfigSerializable
 public class EffectEntry {
 
-    /** Namespaced identifier of the effect, e.g. {@code "minecraft:speed"}. */
+    /**
+     * Namespaced identifier of the effect, e.g. {@code "minecraft:speed"}.
+     * A bare name without a namespace (e.g. {@code "speed"}) is also accepted;
+     * {@code "minecraft:"} will be prepended automatically.
+     */
     public String id = "minecraft:speed";
 
     /** Effect amplifier (0 = level I, 1 = level II, …). */
