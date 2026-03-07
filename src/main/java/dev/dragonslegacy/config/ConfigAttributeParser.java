@@ -3,7 +3,9 @@ package dev.dragonslegacy.config;
 import dev.dragonslegacy.DragonsLegacyMod;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +45,8 @@ public final class ConfigAttributeParser {
                 "[Dragon's Legacy] Invalid attribute identifier '{}' – skipping: {}", entry.id, e.getMessage());
             return null;
         }
-        return BuiltInRegistries.ATTRIBUTE.getHolder(id).map(h -> (Holder<Attribute>) h).orElseGet(() -> {
+        return BuiltInRegistries.ATTRIBUTE.getHolder(ResourceKey.create(Registries.ATTRIBUTE, id))
+            .map(h -> (Holder<Attribute>) h).orElseGet(() -> {
             DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] Unknown attribute '{}' – skipping.", entry.id);
             return null;
@@ -91,8 +94,8 @@ public final class ConfigAttributeParser {
      * <p>Accepted values (case-insensitive):
      * <ul>
      *   <li>{@code "add_value"} → {@link AttributeModifier.Operation#ADD_VALUE}</li>
-     *   <li>{@code "multiply_base"} → {@link AttributeModifier.Operation#MULTIPLY_BASE}</li>
-     *   <li>{@code "multiply_total"} → {@link AttributeModifier.Operation#MULTIPLY_TOTAL}</li>
+     *   <li>{@code "multiply_base"} → {@link AttributeModifier.Operation#ADD_MULTIPLIED_BASE}</li>
+     *   <li>{@code "multiply_total"} → {@link AttributeModifier.Operation#ADD_MULTIPLIED_TOTAL}</li>
      * </ul>
      *
      * @param entry the config entry whose {@code operation} field is parsed
@@ -101,8 +104,8 @@ public final class ConfigAttributeParser {
     public static AttributeModifier.Operation parseOperation(AttributeEntry entry) {
         if (entry == null || entry.operation == null) return AttributeModifier.Operation.ADD_VALUE;
         return switch (entry.operation.toLowerCase()) {
-            case "multiply_base"  -> AttributeModifier.Operation.MULTIPLY_BASE;
-            case "multiply_total" -> AttributeModifier.Operation.MULTIPLY_TOTAL;
+            case "multiply_base"  -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+            case "multiply_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
             default -> {
                 if (!"add_value".equalsIgnoreCase(entry.operation)) {
                     DragonsLegacyMod.LOGGER.warn(

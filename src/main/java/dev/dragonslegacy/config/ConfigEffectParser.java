@@ -3,7 +3,9 @@ package dev.dragonslegacy.config;
 import dev.dragonslegacy.DragonsLegacyMod;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +50,8 @@ public final class ConfigEffectParser {
                 "[Dragon's Legacy] Invalid effect identifier '{}' – skipping: {}", entry.id, e.getMessage());
             return null;
         }
-        return BuiltInRegistries.MOB_EFFECT.getHolder(id).map(h -> (Holder<MobEffect>) h).orElseGet(() -> {
+        return BuiltInRegistries.MOB_EFFECT.getHolder(ResourceKey.create(Registries.MOB_EFFECT, id))
+            .map(h -> (Holder<MobEffect>) h).orElseGet(() -> {
             DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] Unknown effect '{}' – skipping.", entry.id);
             return null;
