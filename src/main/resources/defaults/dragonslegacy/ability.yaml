@@ -30,16 +30,13 @@ attributes:
   - id: "minecraft:max_health"
     amount: 20.0
     operation: "add_value"
-    uuid: "00000000-0000-0000-0000-000000000010"
 
   - id: "minecraft:attack_damage"
     amount: 4.0
     operation: "add_value"
-    uuid: "00000000-0000-0000-0000-000000000011"
 
 # Example - add a movement speed bonus during the ability:
 # attributes:
 #   - id: "minecraft:movement_speed"
 #     amount: 0.1
 #     operation: "add_multiplied_total"
-#     uuid: "00000000-0000-0000-0000-000000000012"

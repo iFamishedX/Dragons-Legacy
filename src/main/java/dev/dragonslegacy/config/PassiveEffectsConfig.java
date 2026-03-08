@@ -59,14 +59,12 @@ public class PassiveEffectsConfig {
         health.id = "minecraft:max_health";
         health.amount = 4.0;
         health.operation = "add_value";
-        health.uuid = "00000000-0000-0000-0000-000000000001";
         list.add(health);
 
         AttributeEntry speed = new AttributeEntry();
         speed.id = "minecraft:movement_speed";
         speed.amount = 0.05;
         speed.operation = "multiply_total";
-        speed.uuid = "00000000-0000-0000-0000-000000000002";
         list.add(speed);
 
         return list;

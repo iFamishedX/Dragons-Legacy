@@ -31,6 +31,9 @@ public final class ConfigEffectParser {
     /**
      * Resolves the {@link Holder} for the effect referenced by {@code entry.id}.
      *
+     * <p>If {@code entry.id} does not contain a colon, {@code "minecraft:"} is
+     * prepended automatically (e.g. {@code "speed"} → {@code "minecraft:speed"}).
+     *
      * @param entry the config entry to resolve
      * @return the effect holder, or {@code null} if the entry is invalid or unknown
      */
@@ -40,19 +43,21 @@ public final class ConfigEffectParser {
             DragonsLegacyMod.LOGGER.warn("[Dragon's Legacy] Effect entry has null/empty id – skipping.");
             return null;
         }
+        // Auto-complete namespace: bare names become "minecraft:<name>"
+        String rawId = entry.id.contains(":") ? entry.id : "minecraft:" + entry.id;
         Identifier id;
         try {
-            id = Identifier.parse(entry.id);
+            id = Identifier.parse(rawId);
         } catch (Exception e) {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] Invalid effect identifier '{}' – skipping: {}", entry.id, e.getMessage());
+                "[Dragon's Legacy] Invalid effect identifier '{}' – skipping: {}", rawId, e.getMessage());
             return null;
         }
         return BuiltInRegistries.MOB_EFFECT.getOptional(id)
             .map(effect -> (Holder<MobEffect>) BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect))
             .orElseGet(() -> {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] Unknown effect '{}' – skipping.", entry.id);
+                "[Dragon's Legacy] Warning: Unknown status effect '{}' – skipping.", rawId);
             return null;
         });
     }
