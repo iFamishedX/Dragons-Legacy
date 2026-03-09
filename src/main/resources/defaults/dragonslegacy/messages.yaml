@@ -1,187 +1,52 @@
-# ============================================================
-# Dragon's Legacy — messages.yaml
-# ============================================================
-#
-# This file controls every message shown by the /dragonslegacy
-# command system.
-#
-# Each message has two fields:
-#
-#   output: <mode>   Where the message is displayed.
-#                    Allowed values:
-#                      chat      — standard chat message (default)
-#                      actionbar — above the hotbar
-#                      bossbar   — temporary boss bar (5 s)
-#                      title     — large on-screen title
-#                      subtitle  — small on-screen subtitle
-#
-#   text: |          The message content.
-#                    Supports:
-#                      • MiniMessage formatting  (<gold>, <bold>, <#RRGGBB>, etc.)
-#                      • PB4 Placeholder API     (%deg:bearer%, %deg:item%, etc.)
-#                      • Full hex color codes    (<#FF5500>)
-#                      • Multi-line text         (YAML block scalar with |)
-#
-# ============================================================
-# MINIESSAGE REFERENCE
-# ============================================================
-#
-#   <gold>text</>      — Named colors
-#   <#FF4500>text</>   — Hex colors
-#   <bold>text</>      — Bold
-#   <italic>text</>    — Italic
-#   <underlined>       — Underline
-#   <strikethrough>    — Strikethrough
-#   <obfuscated>       — Obfuscated (random characters)
-#   <reset>            — Reset all formatting
-#   <newline>          — Explicit newline (or use YAML multi-line)
-#
-# ============================================================
-# PLACEHOLDER REFERENCE (PB4 Placeholder API)
-# ============================================================
-#
-#   %deg:bearer%       — Display name of the current egg bearer
-#   %deg:item%         — Translated name of the Dragon Egg item
-#   %deg:pos%          — Last-known position of the bearer
-#   %player_name%      — Name of the player running the command
-#   (any global PB4 placeholder is also supported)
-#
-# ============================================================
+# Dragon's Legacy messages configuration
 
-# ----------------------------------------------------------
-# /dragonslegacy help
-# ----------------------------------------------------------
-# Shown when a player runs /dragonslegacy help.
-# Recommended output mode: chat
-#
-# Example:
-# help:
-#   output: "chat"
-#   text: |
-#     <gold><bold>Dragon's Legacy Commands</bold></gold>
-#       /dragonslegacy help    - Show this help message
-#       /dragonslegacy bearer  - Show the current bearer
-#       /dragonslegacy hunger on  - Activate Dragon's Hunger
-#       /dragonslegacy hunger off - Deactivate Dragon's Hunger
-#
-help:
-  output: "chat"
-  text: |
-    <gold><bold>Dragon's Legacy Commands</bold></gold>
-    <gray>  /dragonslegacy help</gray> - Show this help message
-    <gray>  /dragonslegacy bearer</gray> - Show the current bearer
-    <gray>  /dragonslegacy hunger on</gray> - Activate Dragon's Hunger
-    <gray>  /dragonslegacy hunger off</gray> - Deactivate Dragon's Hunger
+use_minimessage: true
 
-# ----------------------------------------------------------
-# /dragonslegacy bearer — bearer found
-# ----------------------------------------------------------
-# Shown when there IS a current bearer.
-# Recommended output mode: chat
-# Available placeholders: %deg:bearer%, %deg:item%, %deg:pos%
-#
-# Example:
-# bearer_info:
-#   output: "chat"
-#   text: "<yellow>The %deg:item% is held by <gold>%deg:bearer%</>."
-#
-bearer_info:
-  output: "chat"
-  text: "<yellow>The %deg:item% is currently held by <gold>%deg:bearer%</>."
+output_modes:
+  help: "chat"
+  bearer_info: "chat"
+  bearer_none: "chat"
+  hunger_activate: "title"
+  hunger_deactivate: "title"
+  hunger_expired: "title"
+  not_bearer: "actionbar"
+  elytra_blocked: "actionbar"
+  announcement_egg_picked_up: "chat"
+  announcement_egg_dropped: "chat"
+  announcement_egg_placed: "chat"
+  announcement_bearer_changed: "chat"
+  announcement_bearer_cleared: "chat"
+  announcement_egg_teleported: "chat"
+  announcement_ability_activated: "chat"
+  announcement_ability_expired: "chat"
+  announcement_ability_cooldown_started: "chat"
+  announcement_ability_cooldown_ended: "chat"
 
-# ----------------------------------------------------------
-# /dragonslegacy bearer — no bearer
-# ----------------------------------------------------------
-# Shown when NO player currently holds the egg.
-# Available placeholders: %deg:item%
-#
-# Example:
-# bearer_none:
-#   output: "chat"
-#   text: "<yellow>No one holds the %deg:item% yet."
-#
-bearer_none:
-  output: "chat"
-  text: "<yellow>No one holds the %deg:item% yet."
+text:
+  help: |
 
-# ----------------------------------------------------------
-# /dragonslegacy hunger on — activation
-# ----------------------------------------------------------
-# Sent to the bearer when Dragon's Hunger is activated.
-# Recommended output mode: title (dramatic effect)
-# Available placeholders: %deg:bearer%, %deg:item%
-#
-# Example:
-# hunger_activate:
-#   output: "title"
-#   text: "<#FF4500><bold>Dragon's Hunger!</bold></#FF4500>"
-#
-hunger_activate:
-  output: "title"
-  text: "<#FF4500><bold>Dragon's Hunger!</bold></#FF4500>"
+    /dragonslegacy help
+    /dragonslegacy bearer
+    /dragonslegacy hunger on
+    /dragonslegacy hunger off
 
-# ----------------------------------------------------------
-# /dragonslegacy hunger off — deactivation
-# ----------------------------------------------------------
-# Sent to the bearer when Dragon's Hunger is deactivated.
-# Recommended output mode: title or actionbar
-# Available placeholders: %deg:bearer%, %deg:item%
-#
-# Example:
-# hunger_deactivate:
-#   output: "title"
-#   text: "<gray><italic>Dragon's Hunger fades...</italic></gray>"
-#
-hunger_deactivate:
-  output: "title"
-  text: "<gray><italic>Dragon's Hunger fades...</italic></gray>"
+  bearer_info: "<yellow>The %deg:item% is held by <gold>%deg:bearer%</>."
+  bearer_none: "<yellow>No one holds the %deg:item% yet.</yellow>"
 
-# ----------------------------------------------------------
-# Not the bearer
-# ----------------------------------------------------------
-# Shown when a non-bearer player tries /dragonslegacy hunger on/off.
-# Recommended output mode: actionbar (brief, non-intrusive)
-# Available placeholders: %deg:bearer%, %deg:item%
-#
-# Example:
-# not_bearer:
-#   output: "actionbar"
-#   text: "<red>You are not the Dragon Egg bearer!"
-#
-not_bearer:
-  output: "actionbar"
-  text: "<red>You are not the Dragon Egg bearer!"
+  hunger_activate: "<#FF4500><bold>Dragon's Hunger!</bold>"
+  hunger_deactivate: "<gray><italic>Dragon's Hunger fades...</italic></gray>"
+  hunger_expired: "<gray><italic>Dragon's Hunger has ended.</italic></gray>"
 
-# ----------------------------------------------------------
-# Dragon's Hunger expired
-# ----------------------------------------------------------
-# Sent directly to the bearer when Dragon's Hunger expires naturally
-# (i.e., the ability duration runs out on its own).
-# Recommended output mode: title or actionbar
-# Available placeholders: %deg:bearer%, %deg:item%
-#
-# Example:
-# hunger_expired:
-#   output: "title"
-#   text: "<gray><italic>Dragon's Hunger has ended.</italic></gray>"
-#
-hunger_expired:
-  output: "title"
-  text: "<gray><italic>Dragon's Hunger has ended.</italic></gray>"
+  not_bearer: "<red>You are not the Dragon Egg bearer!</red>"
+  elytra_blocked: "<red>You cannot use an elytra while Dragon's Hunger is active!</red>"
 
-# ----------------------------------------------------------
-# Elytra blocked
-# ----------------------------------------------------------
-# Sent to the bearer when they attempt to use an elytra while
-# Dragon's Hunger is active and block_elytra is true in ability.yaml.
-# Recommended output mode: actionbar (brief, non-intrusive)
-# Available placeholders: %deg:bearer%, %deg:item%
-#
-# Example:
-# elytra_blocked:
-#   output: "actionbar"
-#   text: "<red>You cannot use an elytra while Dragon's Hunger is active!"
-#
-elytra_blocked:
-  output: "actionbar"
-  text: "<red>You cannot use an elytra while Dragon's Hunger is active!"
+  announcement_egg_picked_up: "<gold>[Dragon's Legacy]</gold> <player> picked up the egg."
+  announcement_egg_dropped: "<gold>[Dragon's Legacy]</gold> The egg was dropped."
+  announcement_egg_placed: "<gold>[Dragon's Legacy]</gold> Egg placed at <x>, <y>, <z>."
+  announcement_bearer_changed: "<gold>[Dragon's Legacy]</gold> New bearer: <player>."
+  announcement_bearer_cleared: "<gold>[Dragon's Legacy]</gold> The egg has no bearer."
+  announcement_egg_teleported: "<gold>[Dragon's Legacy]</gold> Egg returned to spawn."
+  announcement_ability_activated: "<gold>[Dragon's Legacy]</gold> <player> activated Dragon's Hunger."
+  announcement_ability_expired: "<gold>[Dragon's Legacy]</gold> Dragon's Hunger expired."
+  announcement_ability_cooldown_started: "<gold>[Dragon's Legacy]</gold> Ability cooldown started."
+  announcement_ability_cooldown_ended: "<gold>[Dragon's Legacy]</gold> Ability ready."
