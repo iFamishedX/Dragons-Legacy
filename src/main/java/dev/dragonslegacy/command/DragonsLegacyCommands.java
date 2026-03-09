@@ -532,7 +532,7 @@ public class DragonsLegacyCommands {
             .append(Component.literal("  %dragonslegacy:executor%         = " + player.getGameProfile().name() + "\n"))
             .append(Component.literal("  %dragonslegacy:executor_uuid%    = " + player.getUUID() + "\n"))
             .append(Component.literal("  %dragonslegacy:bearer%           = " + bearer + "\n"))
-            .append(Component.literal("  %dragonslegacy:egg_item%         = Dragon Egg\n"))
+            .append(Component.literal("  %dragonslegacy:global_prefix%    = (configured prefix)\n"))
             .append(Component.literal("  %dragonslegacy:egg_state%        = " + eggState + "\n"))
             .append(Component.literal("  %dragonslegacy:ability_duration% = " + abilityDuration + "\n"))
             .append(Component.literal("  %dragonslegacy:ability_cooldown% = " + abilityCooldown + "\n"))

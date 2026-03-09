@@ -1,0 +1,16 @@
+config_version: 1
+
+effects:
+  - id: "resistance"
+    amplifier: 0
+    show_particles: false
+    show_icon: false
+  - id: "saturation"
+    amplifier: 0
+    show_particles: false
+    show_icon: false
+
+attributes:
+  - id: "max_health"
+    amount: 4.0
+    operation: "add_value"

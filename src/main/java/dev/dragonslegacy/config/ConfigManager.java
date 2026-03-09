@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -20,14 +21,24 @@ import java.util.Map;
  *
  * <h3>Files managed</h3>
  * <ul>
- *   <li>{@code config.yaml}   – unified egg, ability, passive, and commands settings</li>
+ *   <li>{@code config.yaml}   – master on/off switch and config version</li>
+ *   <li>{@code egg.yaml}      – egg behavior, visibility, and protection settings</li>
+ *   <li>{@code ability.yaml}  – Dragon's Hunger ability settings</li>
+ *   <li>{@code passive.yaml}  – passive effects and attributes</li>
+ *   <li>{@code glow.yaml}     – glow system settings</li>
+ *   <li>{@code commands.yaml} – command names and aliases</li>
  *   <li>{@code messages.yaml} – all text output, output modes, and announcements</li>
  * </ul>
  */
 public class ConfigManager {
 
-    private UnifiedConfig unified  = new UnifiedConfig();
-    private MessagesConfig messages = new MessagesConfig();
+    private CoreConfig         coreConfig     = new CoreConfig();
+    private EggConfig          eggConfig      = new EggConfig();
+    private AbilityFileConfig  abilityFile    = new AbilityFileConfig();
+    private PassiveConfig      passiveConfig  = new PassiveConfig();
+    private GlowConfig         glowConfig     = new GlowConfig();
+    private CommandsFileConfig commandsFile   = new CommandsFileConfig();
+    private MessagesConfig     messages       = new MessagesConfig();
 
     // -------------------------------------------------------------------------
     // Lifecycle
@@ -42,73 +53,90 @@ public class ConfigManager {
         } catch (IOException e) {
             DragonsLegacyMod.LOGGER.warn("[Dragon's Legacy] Could not create config directory.", e);
         }
-        unified  = loadOrCreate("config.yaml",   UnifiedConfig.class,  new UnifiedConfig());
-        messages = loadOrCreate("messages.yaml",  MessagesConfig.class, new MessagesConfig());
+        coreConfig    = loadOrCreate("config.yaml",   CoreConfig.class,        new CoreConfig());
+        eggConfig     = loadOrCreate("egg.yaml",       EggConfig.class,         new EggConfig());
+        abilityFile   = loadOrCreate("ability.yaml",   AbilityFileConfig.class, new AbilityFileConfig());
+        passiveConfig = loadOrCreate("passive.yaml",   PassiveConfig.class,     new PassiveConfig());
+        glowConfig    = loadOrCreate("glow.yaml",      GlowConfig.class,        new GlowConfig());
+        commandsFile  = loadOrCreate("commands.yaml",  CommandsFileConfig.class,new CommandsFileConfig());
+        messages      = loadOrCreate("messages.yaml",  MessagesConfig.class,    new MessagesConfig());
     }
 
     /**
      * Re-reads all YAML files from disk.
      */
     public void reload() {
-        unified  = reload("config.yaml",   UnifiedConfig.class,  unified);
-        messages = reload("messages.yaml",  MessagesConfig.class, messages);
+        coreConfig    = reload("config.yaml",   CoreConfig.class,        coreConfig);
+        eggConfig     = reload("egg.yaml",       EggConfig.class,         eggConfig);
+        abilityFile   = reload("ability.yaml",   AbilityFileConfig.class, abilityFile);
+        passiveConfig = reload("passive.yaml",   PassiveConfig.class,     passiveConfig);
+        glowConfig    = reload("glow.yaml",      GlowConfig.class,        glowConfig);
+        commandsFile  = reload("commands.yaml",  CommandsFileConfig.class,commandsFile);
+        messages      = reload("messages.yaml",  MessagesConfig.class,    messages);
         DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] All configuration files reloaded.");
     }
 
     // -------------------------------------------------------------------------
-    // Primary getters
+    // Primary getters (new API)
     // -------------------------------------------------------------------------
 
-    public UnifiedConfig  getUnified()  { return unified; }
-    public MessagesConfig getMessages() { return messages; }
+    public CoreConfig         getCore()         { return coreConfig; }
+    public EggConfig          getEggConfig()    { return eggConfig; }
+    public AbilityFileConfig  getAbilityFile()  { return abilityFile; }
+    public PassiveConfig      getPassiveConfig(){ return passiveConfig; }
+    public GlowConfig         getGlow()         { return glowConfig; }
+    public CommandsFileConfig getCommandsFile() { return commandsFile; }
+    public MessagesConfig     getMessages()     { return messages; }
+
+    /** @deprecated Use {@link #getCore()} for the enabled flag. Builds a synthetic UnifiedConfig. */
+    @Deprecated
+    public UnifiedConfig getUnified() {
+        UnifiedConfig u = new UnifiedConfig();
+        u.egg      = toEggSection();
+        u.ability  = toAbilitySection();
+        u.passive  = toPassiveSection();
+        u.commands = toCommandsSection();
+        return u;
+    }
 
     // -------------------------------------------------------------------------
     // Adapter getters (backward-compatible with legacy code)
     // -------------------------------------------------------------------------
 
     /**
-     * Returns a {@link MainConfig} built from the {@code egg} section of config.yaml.
+     * Returns a {@link MainConfig} built from egg.yaml.
      */
     public MainConfig getMain() {
         MainConfig m = new MainConfig();
-        UnifiedConfig.EggSection egg = unified.egg;
-        if (egg != null) {
-            m.searchRadius        = egg.searchRadius;
-            m.blockEnderChest     = egg.blockEnderChest;
-            m.blockContainerItems = egg.blockContainerItems;
-            m.offlineResetDays    = egg.offlineResetDays;
-            m.nearbyRange         = egg.nearbyRange;
-            if (egg.visibility != null) m.visibility = egg.visibility;
-        }
+        m.searchRadius        = eggConfig.searchRadius;
+        m.blockEnderChest     = eggConfig.blockEnderChest;
+        m.blockContainerItems = eggConfig.blockContainerItems;
+        m.offlineResetDays    = eggConfig.offlineResetDays;
+        m.nearbyRange         = eggConfig.nearbyRange;
+        if (eggConfig.visibility != null) m.visibility = eggConfig.visibility;
         return m;
     }
 
     /**
-     * Returns an {@link AbilityConfig} built from the {@code ability} section of config.yaml.
+     * Returns an {@link AbilityConfig} built from ability.yaml.
      */
     public AbilityConfig getAbility() {
         AbilityConfig a = new AbilityConfig();
-        UnifiedConfig.AbilitySection ab = unified.ability;
-        if (ab != null) {
-            a.durationTicks = ab.durationTicks;
-            a.cooldownTicks = ab.cooldownTicks;
-            a.blockElytra   = ab.blockElytra;
-            if (ab.effects    != null) a.effects    = ab.effects;
-            if (ab.attributes != null) a.attributes = ab.attributes;
-        }
+        a.durationTicks = abilityFile.durationTicks;
+        a.cooldownTicks = abilityFile.cooldownTicks;
+        a.blockElytra   = abilityFile.blockElytra;
+        if (abilityFile.effects    != null) a.effects    = abilityFile.effects;
+        if (abilityFile.attributes != null) a.attributes = abilityFile.attributes;
         return a;
     }
 
     /**
-     * Returns a {@link PassiveEffectsConfig} built from the {@code passive} section of config.yaml.
+     * Returns a {@link PassiveEffectsConfig} built from passive.yaml.
      */
     public PassiveEffectsConfig getPassiveEffects() {
         PassiveEffectsConfig p = new PassiveEffectsConfig();
-        UnifiedConfig.PassiveSection pas = unified.passive;
-        if (pas != null) {
-            if (pas.effects    != null) p.effects    = pas.effects;
-            if (pas.attributes != null) p.attributes = pas.attributes;
-        }
+        if (passiveConfig.effects    != null) p.effects    = passiveConfig.effects;
+        if (passiveConfig.attributes != null) p.attributes = passiveConfig.attributes;
         return p;
     }
 
@@ -122,35 +150,32 @@ public class ConfigManager {
     }
 
     /**
-     * Returns a {@link CommandsConfig} built from the {@code commands} section of config.yaml.
+     * Returns a {@link CommandsConfig} built from commands.yaml.
      */
     public CommandsConfig getCommands() {
         CommandsConfig c = new CommandsConfig();
-        UnifiedConfig.CommandsSection cmd = unified.commands;
-        if (cmd != null) {
-            if (cmd.root    != null) c.rootCommand  = cmd.root;
-            if (cmd.aliases != null) c.rootAliases  = cmd.aliases;
-            if (cmd.subcommands != null) {
-                c.subcommands.help        = cmd.subcommands.help;
-                c.subcommands.bearer      = cmd.subcommands.bearer;
-                c.subcommands.hunger      = cmd.subcommands.hunger;
-                c.subcommands.hungerOn    = cmd.subcommands.hungerOn;
-                c.subcommands.hungerOff   = cmd.subcommands.hungerOff;
-                c.subcommands.reload      = cmd.subcommands.reload;
-                c.subcommands.test        = cmd.subcommands.test;
-                c.subcommands.placeholders= cmd.subcommands.placeholders;
-            }
+        if (commandsFile.root    != null) c.rootCommand = commandsFile.root;
+        if (commandsFile.aliases != null) c.rootAliases = commandsFile.aliases;
+        if (commandsFile.subcommands != null) {
+            c.subcommands.help         = commandsFile.subcommands.help;
+            c.subcommands.bearer       = commandsFile.subcommands.bearer;
+            c.subcommands.hunger       = commandsFile.subcommands.hunger;
+            c.subcommands.hungerOn     = commandsFile.subcommands.hungerOn;
+            c.subcommands.hungerOff    = commandsFile.subcommands.hungerOff;
+            c.subcommands.reload       = commandsFile.subcommands.reload;
+            c.subcommands.test         = commandsFile.subcommands.test;
+            c.subcommands.placeholders = commandsFile.subcommands.placeholders;
         }
         return c;
     }
 
     /**
      * Returns an {@link AnnouncementsConfig} built from the announcement entries in messages.yaml.
-     * The templates map is populated using keys prefixed with {@code announcement_}.
+     * MiniMessage is always enabled.
      */
     public AnnouncementsConfig getAnnouncements() {
         AnnouncementsConfig a = new AnnouncementsConfig();
-        a.useMiniMessage = messages.useMiniMessage;
+        a.useMiniMessage = true;
         Map<String, String> templates = new LinkedHashMap<>();
         addTemplate(templates, "egg_picked_up",            "announcement_egg_picked_up");
         addTemplate(templates, "egg_dropped",              "announcement_egg_dropped");
@@ -177,6 +202,51 @@ public class ConfigManager {
         } else {
             templates.put(oldKey, AnnouncementsConfig.defaults().getOrDefault(oldKey, ""));
         }
+    }
+
+    private UnifiedConfig.EggSection toEggSection() {
+        UnifiedConfig.EggSection s = new UnifiedConfig.EggSection();
+        s.searchRadius        = eggConfig.searchRadius;
+        s.blockEnderChest     = eggConfig.blockEnderChest;
+        s.blockContainerItems = eggConfig.blockContainerItems;
+        s.offlineResetDays    = eggConfig.offlineResetDays;
+        s.nearbyRange         = eggConfig.nearbyRange;
+        if (eggConfig.visibility != null) s.visibility = eggConfig.visibility;
+        return s;
+    }
+
+    private UnifiedConfig.AbilitySection toAbilitySection() {
+        UnifiedConfig.AbilitySection s = new UnifiedConfig.AbilitySection();
+        s.durationTicks = abilityFile.durationTicks;
+        s.cooldownTicks = abilityFile.cooldownTicks;
+        s.blockElytra   = abilityFile.blockElytra;
+        if (abilityFile.effects    != null) s.effects    = abilityFile.effects;
+        if (abilityFile.attributes != null) s.attributes = abilityFile.attributes;
+        return s;
+    }
+
+    private UnifiedConfig.PassiveSection toPassiveSection() {
+        UnifiedConfig.PassiveSection s = new UnifiedConfig.PassiveSection();
+        if (passiveConfig.effects    != null) s.effects    = passiveConfig.effects;
+        if (passiveConfig.attributes != null) s.attributes = passiveConfig.attributes;
+        return s;
+    }
+
+    private UnifiedConfig.CommandsSection toCommandsSection() {
+        UnifiedConfig.CommandsSection s = new UnifiedConfig.CommandsSection();
+        if (commandsFile.root    != null) s.root    = commandsFile.root;
+        if (commandsFile.aliases != null) s.aliases = new ArrayList<>(commandsFile.aliases);
+        if (commandsFile.subcommands != null) {
+            s.subcommands.help         = commandsFile.subcommands.help;
+            s.subcommands.bearer       = commandsFile.subcommands.bearer;
+            s.subcommands.hunger       = commandsFile.subcommands.hunger;
+            s.subcommands.hungerOn     = commandsFile.subcommands.hungerOn;
+            s.subcommands.hungerOff    = commandsFile.subcommands.hungerOff;
+            s.subcommands.reload       = commandsFile.subcommands.reload;
+            s.subcommands.test         = commandsFile.subcommands.test;
+            s.subcommands.placeholders = commandsFile.subcommands.placeholders;
+        }
+        return s;
     }
 
     private <T> T loadOrCreate(String fileName, Class<T> type, T defaults) {

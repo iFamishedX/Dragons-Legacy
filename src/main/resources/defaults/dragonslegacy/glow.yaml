@@ -1,0 +1,19 @@
+config_version: 1
+
+glow:
+  enabled: true
+  color: "#FFFFFF"
+  crafting:
+    enabled: true
+    type: "anvil"
+    base_item: "minecraft:dragon_egg"
+    materials:
+      amethyst_shard: "#AA00FF"
+      copper_ingot: "#B87333"
+      gold_ingot: "#FFD700"
+      iron_ingot: "#D8D8D8"
+      netherite_ingot: "#3C2A23"
+      quartz: "#E7E7E7"
+      redstone: "#FF0000"
+      emerald: "#00FF55"
+      diamond: "#00FFFF"

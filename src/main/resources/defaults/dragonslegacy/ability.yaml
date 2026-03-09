@@ -1,0 +1,29 @@
+config_version: 1
+
+duration_ticks: 6000
+cooldown_ticks: 1200
+block_elytra: true
+
+scaling:
+  enabled: false
+  health_multiplier: 0.0
+  damage_multiplier: 0.0
+  speed_multiplier: 0.0
+
+effects:
+  - id: "strength"
+    amplifier: 1
+    show_particles: true
+    show_icon: true
+  - id: "speed"
+    amplifier: 1
+    show_particles: true
+    show_icon: true
+
+attributes:
+  - id: "max_health"
+    amount: 20.0
+    operation: "add_value"
+  - id: "attack_damage"
+    amount: 4.0
+    operation: "add_value"

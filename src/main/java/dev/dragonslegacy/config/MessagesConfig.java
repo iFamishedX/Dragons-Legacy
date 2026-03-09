@@ -119,8 +119,8 @@ public class MessagesConfig {
     @Setting("config_version")
     public int configVersion = 1;
 
-    @Setting("use_minimessage")
-    public boolean useMiniMessage = true;
+    /** Global prefix prepended to messages that include %dragonslegacy:global_prefix%. */
+    public String prefix = "";
 
     /** Per-message configuration map, keyed by message identifier. */
     public Map<String, MessageConfig> messages = buildDefaultMessages();
@@ -250,15 +250,15 @@ public class MessagesConfig {
 
         map.put("help", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "\n/dragonslegacy help\n/dragonslegacy bearer\n/dragonslegacy hunger on\n/dragonslegacy hunger off"))));
+                "%dragonslegacy:global_prefix% <gold><bold>Dragon's Legacy Commands</bold></gold>\n/dragonslegacy help\n/dragonslegacy bearer\n/dragonslegacy hunger on\n/dragonslegacy hunger off"))));
 
         map.put("bearer_info", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "<yellow>The %dragonslegacy:egg_item% is held by <gold>%dragonslegacy:bearer%</gold>.</yellow>"))));
+                "%dragonslegacy:global_prefix% <yellow>The Dragon Egg is held by <gold>%dragonslegacy:bearer%</gold>.</yellow>"))));
 
         map.put("bearer_none", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "<yellow>No one holds the %dragonslegacy:egg_item% yet.</yellow>"))));
+                "%dragonslegacy:global_prefix% <yellow>No one holds the Dragon Egg yet.</yellow>"))));
 
         map.put("hunger_activate", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE),
             List.of(channel("title", "bearer_only",
@@ -282,43 +282,43 @@ public class MessagesConfig {
 
         map.put("announcement_egg_picked_up", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_held", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> %dragonslegacy:player% picked up the egg."))));
+                "%dragonslegacy:global_prefix% %dragonslegacy:player% picked up the Dragon Egg."))));
 
         map.put("announcement_egg_dropped", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_dropped", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> The egg was dropped."))));
+                "%dragonslegacy:global_prefix% The Dragon Egg was dropped."))));
 
         map.put("announcement_egg_placed", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_placed", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> Egg placed at %dragonslegacy:x%, %dragonslegacy:y%, %dragonslegacy:z%."))));
+                "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:x%, %dragonslegacy:y%, %dragonslegacy:z%."))));
 
         map.put("announcement_bearer_changed", buildEntry(0, 0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> New bearer: %dragonslegacy:bearer%."))));
+                "%dragonslegacy:global_prefix% New bearer: %dragonslegacy:bearer%."))));
 
         map.put("announcement_bearer_cleared", buildEntry(0, 0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> The egg has no bearer."))));
+                "%dragonslegacy:global_prefix% The Dragon Egg has no bearer."))));
 
         map.put("announcement_egg_teleported", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> Egg returned to spawn."))));
+                "%dragonslegacy:global_prefix% Dragon Egg returned to spawn."))));
 
         map.put("announcement_ability_activated", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> %dragonslegacy:player% activated Dragon's Hunger."))));
+                "%dragonslegacy:global_prefix% %dragonslegacy:player% activated Dragon's Hunger."))));
 
         map.put("announcement_ability_expired", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.FALSE),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> Dragon's Hunger expired."))));
+                "%dragonslegacy:global_prefix% Dragon's Hunger expired."))));
 
         map.put("announcement_ability_cooldown_started", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> Ability cooldown started."))));
+                "%dragonslegacy:global_prefix% Ability cooldown started."))));
 
         map.put("announcement_ability_cooldown_ended", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",
-                "<gold>[Dragon's Legacy]</gold> Ability ready."))));
+                "%dragonslegacy:global_prefix% Ability ready."))));
 
         return map;
     }

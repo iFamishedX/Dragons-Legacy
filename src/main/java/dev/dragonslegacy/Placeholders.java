@@ -54,14 +54,10 @@ public class Placeholders {
         ALL_PLACEHOLDERS.put(dlIdentifier("bearer"), (ctx, arg) ->
             PlaceholderResult.value(APIUtils.getBearer()));
 
-        // Egg item display name
-        ALL_PLACEHOLDERS.put(dlIdentifier("egg_item"), (ctx, arg) -> {
-            ItemStack stack = Items.DRAGON_EGG.getDefaultInstance();
-            MutableComponent text = Component.empty()
-                .append(stack.getHoverName())
-                .withStyle(stack.getRarity().color())
-                .withStyle(style -> style.withHoverEvent(new HoverEvent.ShowItem(stack)));
-            return PlaceholderResult.value(text);
+        // Global prefix from MessagesConfig
+        ALL_PLACEHOLDERS.put(dlIdentifier("global_prefix"), (ctx, arg) -> {
+            String prefix = DragonsLegacyMod.configManager.getMessages().prefix;
+            return PlaceholderResult.value(prefix != null ? prefix : "");
         });
 
         // Egg coordinates

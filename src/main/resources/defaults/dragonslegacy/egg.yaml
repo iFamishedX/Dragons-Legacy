@@ -1,0 +1,25 @@
+config_version: 1
+
+search_radius: 25
+block_ender_chest: true
+block_container_items: false
+offline_reset_days: 3
+nearby_range: 64
+
+visibility:
+  INVENTORY: "EXACT"
+  ITEM: "EXACT"
+  PLAYER: "HIDDEN"
+  BLOCK: "RANDOMIZED"
+  FALLING_BLOCK: "EXACT"
+  ENTITY: "EXACT"
+
+protection:
+  void: true
+  fire: true
+  lava: true
+  explosions: true
+  cactus: true
+  despawn: true
+  hopper: true
+  portal: true

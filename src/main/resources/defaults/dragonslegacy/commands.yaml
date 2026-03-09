@@ -1,0 +1,14 @@
+config_version: 1
+
+root: "dragonslegacy"
+aliases:
+  - "dl"
+subcommands:
+  help: "help"
+  bearer: "bearer"
+  hunger: "hunger"
+  hunger_on: "on"
+  hunger_off: "off"
+  reload: "reload"
+  test: "test"
+  placeholders: "placeholders"
