@@ -161,6 +161,14 @@ public class DragonsLegacyCommands {
     /**
      * Returns a Brigadier predicate that enforces either a LuckPerms permission node
      * or a vanilla op level, depending on the {@code permissions_api} flag in global.yaml.
+     *
+     * <p>When {@code permissions_api = true}: checks the configured LuckPerms permission node.
+     * If no permissions API is loaded, the check is open to all (default = true).
+     *
+     * <p>When {@code permissions_api = false}: maps the integer op level to a {@link PermissionLevel}
+     * and uses {@link Permissions#require(String, PermissionLevel)} with the op level as the fallback.
+     * The configured permission node is still passed so LuckPerms can override it explicitly if desired,
+     * but the op level acts as the authoritative default when no explicit node is set.
      */
     private static java.util.function.Predicate<CommandSourceStack> requirePerm(
             dev.dragonslegacy.config.GlobalConfig global,
@@ -171,9 +179,29 @@ public class DragonsLegacyCommands {
             if (node == null || node.isBlank()) return src -> true;
             return src -> Permissions.check(src, node);
         } else {
-            int opLevel = entry.opLevel;
-            return src -> src.hasPermission(opLevel);
+            // permissions_api = false → use vanilla op level.
+            // Map the integer op level to the nearest PermissionLevel and use Permissions.require
+            // (Fabric Permissions API falls back to the op level when no permissions mod is present).
+            PermissionLevel level = intToPermissionLevel(entry.opLevel);
+            String node = (entry.permissionNode != null && !entry.permissionNode.isBlank())
+                ? entry.permissionNode
+                : "dragonslegacy.oplevel." + entry.opLevel;
+            return Permissions.require(node, level);
         }
+    }
+
+    /**
+     * Maps an integer operator level (0–4) to the corresponding {@link PermissionLevel} constant.
+     * Values outside the 0–4 range are clamped to the nearest valid level.
+     */
+    private static PermissionLevel intToPermissionLevel(int opLevel) {
+        return switch (Math.max(0, Math.min(4, opLevel))) {
+            case 0  -> PermissionLevel.ALL;
+            case 1  -> PermissionLevel.MODERATORS;
+            case 2  -> PermissionLevel.GAMEMASTERS;
+            case 3  -> PermissionLevel.ADMINS;
+            default -> PermissionLevel.OWNERS;
+        };
     }
 
     // =========================================================================
