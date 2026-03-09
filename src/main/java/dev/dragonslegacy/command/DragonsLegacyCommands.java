@@ -159,7 +159,7 @@ public class DragonsLegacyCommands {
     private static int help(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         MessagesConfig messages = DragonsLegacyMod.configManager.getMessages();
-        MessageOutputSystem.send(player, messages.help);
+        MessageOutputSystem.send(player, messages.getEntry("help"));
         return 1;
     }
 
@@ -179,9 +179,9 @@ public class DragonsLegacyCommands {
 
         UUID bearerUUID = legacy.getEggTracker().getCurrentBearer();
         if (bearerUUID == null) {
-            MessageOutputSystem.send(player, messages.bearerNone);
+            MessageOutputSystem.send(player, messages.getEntry("bearer_none"));
         } else {
-            MessageOutputSystem.send(player, messages.bearerInfo);
+            MessageOutputSystem.send(player, messages.getEntry("bearer_info"));
         }
         return 1;
     }
@@ -210,7 +210,7 @@ public class DragonsLegacyCommands {
         EggTracker tracker = legacy.getEggTracker();
         UUID bearerUUID = tracker.getCurrentBearer();
         if (bearerUUID == null || !player.getUUID().equals(bearerUUID)) {
-            MessageOutputSystem.send(player, messages.notBearer);
+            MessageOutputSystem.send(player, messages.getEntry("not_bearer"));
             return 0;
         }
 
@@ -219,7 +219,7 @@ public class DragonsLegacyCommands {
         engine.activateDragonHunger(player);
 
         // Send activation message
-        MessageOutputSystem.send(player, messages.hungerActivate);
+        MessageOutputSystem.send(player, messages.getEntry("hunger_activate"));
         return 1;
     }
 
@@ -247,7 +247,7 @@ public class DragonsLegacyCommands {
         EggTracker tracker = legacy.getEggTracker();
         UUID bearerUUID = tracker.getCurrentBearer();
         if (bearerUUID == null || !player.getUUID().equals(bearerUUID)) {
-            MessageOutputSystem.send(player, messages.notBearer);
+            MessageOutputSystem.send(player, messages.getEntry("not_bearer"));
             return 0;
         }
 
@@ -256,7 +256,7 @@ public class DragonsLegacyCommands {
         engine.deactivateDragonHunger(player, "command");
 
         // Send deactivation message
-        MessageOutputSystem.send(player, messages.hungerDeactivate);
+        MessageOutputSystem.send(player, messages.getEntry("hunger_deactivate"));
         return 1;
     }
 

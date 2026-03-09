@@ -84,9 +84,7 @@ public class AbilityEngine {
                     if (currentTick - lastElytraBlockTick >= ELYTRA_BLOCK_MESSAGE_INTERVAL) {
                         lastElytraBlockTick = currentTick;
                         MessagesConfig msgs = DragonsLegacyMod.configManager.getMessages();
-                        if (msgs.elytraBlocked != null) {
-                            MessageOutputSystem.send(player, msgs.elytraBlocked);
-                        }
+                        MessageOutputSystem.send(player, msgs.getEntry("elytra_blocked"));
                     }
                 }
             }
@@ -216,9 +214,7 @@ public class AbilityEngine {
                 DragonHungerAbility.remove(player);
                 // Notify the bearer that the ability has expired
                 MessagesConfig msgs = DragonsLegacyMod.configManager.getMessages();
-                if (msgs.hungerExpired != null) {
-                    MessageOutputSystem.send(player, msgs.hungerExpired);
-                }
+                MessageOutputSystem.send(player, msgs.getEntry("hunger_expired"));
             }
         }
 

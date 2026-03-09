@@ -189,15 +189,14 @@ public final class MessageOutputSystem {
     public static void validateEntry(String key, MessagesConfig.MessageEntry entry) {
         if (entry == null) {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] messages.yaml: entry '{}' is null – using defaults.", key);
+                "[Dragon's Legacy] messages.yaml: entry '{}' is null.", key);
             return;
         }
         if (entry.output == null || !VALID_MODES.contains(entry.output.toLowerCase(java.util.Locale.ROOT).trim())) {
             DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] messages.yaml: entry '{}' has invalid output mode '{}'. "
                 + "Allowed: {}. Falling back to '{}'.",
-                key, entry.output, VALID_MODES, DEFAULT_OUTPUT_MODE
-            );
+                key, entry.output, VALID_MODES, DEFAULT_OUTPUT_MODE);
         }
         if (entry.text == null) {
             DragonsLegacyMod.LOGGER.warn(
@@ -213,13 +212,17 @@ public final class MessageOutputSystem {
      */
     public static void validateAll(MessagesConfig cfg) {
         if (cfg == null) return;
-        validateEntry("help",             cfg.help);
-        validateEntry("bearer_info",      cfg.bearerInfo);
-        validateEntry("bearer_none",      cfg.bearerNone);
-        validateEntry("hunger_activate",  cfg.hungerActivate);
-        validateEntry("hunger_deactivate", cfg.hungerDeactivate);
-        validateEntry("not_bearer",       cfg.notBearer);
-        validateEntry("hunger_expired",   cfg.hungerExpired);
-        validateEntry("elytra_blocked",   cfg.elytraBlocked);
+        String[] keys = {
+            "help", "bearer_info", "bearer_none",
+            "hunger_activate", "hunger_deactivate", "hunger_expired",
+            "not_bearer", "elytra_blocked",
+            "announcement_egg_picked_up", "announcement_egg_dropped", "announcement_egg_placed",
+            "announcement_bearer_changed", "announcement_bearer_cleared", "announcement_egg_teleported",
+            "announcement_ability_activated", "announcement_ability_expired",
+            "announcement_ability_cooldown_started", "announcement_ability_cooldown_ended"
+        };
+        for (String key : keys) {
+            validateEntry(key, cfg.getEntry(key));
+        }
     }
 }

@@ -1,213 +1,169 @@
 package dev.dragonslegacy.config;
 
+import dev.dragonslegacy.DragonsLegacyMod;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 /**
- * Configuration for all Dragon's Legacy command messages.
+ * Unified messages configuration loaded from {@code config/dragonslegacy/messages.yaml}.
  *
- * <p>Loaded from {@code config/dragonslegacy/messages.yaml}. Supports:
+ * <p>Replaces the previous field-based MessagesConfig and AnnouncementsConfig.
+ * Messages are stored in two flat maps:
  * <ul>
- *   <li>MiniMessage formatting (e.g. {@code <gold><bold>text<reset>})</li>
- *   <li>PB4 Placeholder API (e.g. {@code %deg:bearer%}, {@code %deg:item%})</li>
- *   <li>Full hex color codes (e.g. {@code <#FF5500>})</li>
- *   <li>Multi-line text</li>
+ *   <li>{@code output_modes} – maps message key → output mode string</li>
+ *   <li>{@code text}         – maps message key → MiniMessage text</li>
  * </ul>
- *
- * <p>Each message entry has an {@code output} field controlling where the message
- * is displayed, and a {@code text} field with the MiniMessage content.
+ * Use {@link #getEntry(String)} to obtain a {@link MessageEntry} for a given key.
  */
 @ConfigSerializable
 public class MessagesConfig {
 
-    /**
-     * Shared node parser with global PB4 placeholders, quick-text, and static pre-parsing.
-     * This mirrors the parser used throughout the rest of the mod.
-     */
     private static final NodeParser PARSER = NodeParser.builder()
         .globalPlaceholders()
         .quickText()
         .staticPreParsing()
         .build();
 
+    private static final Set<String> VALID_MODES =
+        Set.of("chat", "actionbar", "bossbar", "title", "subtitle");
+
     // -------------------------------------------------------------------------
-    // Nested types
+    // Nested type
     // -------------------------------------------------------------------------
 
     /**
-     * A single configurable message with an output mode and text content.
-     *
-     * <p><b>output</b> values:
-     * <ul>
-     *   <li>{@code chat}     – sent as a regular chat message</li>
-     *   <li>{@code actionbar} – shown above the hotbar</li>
-     *   <li>{@code bossbar}  – shown as a boss bar (auto-removed after 5 s)</li>
-     *   <li>{@code title}    – shown as a large title on screen</li>
-     *   <li>{@code subtitle} – shown as a small subtitle on screen</li>
-     * </ul>
+     * A resolved message entry with an output mode and parsed text.
+     * Instances are created on-demand by {@link MessagesConfig#getEntry(String)}.
      */
-    @ConfigSerializable
     public static class MessageEntry {
+        public final String output;
+        public final MessageString text;
 
-        @Comment("""
-            Where this message is displayed.
-            Allowed values: chat, actionbar, bossbar, title, subtitle
-            Default: chat
-            """)
-        public String output = "chat";
-
-        @Comment("""
-            The message text.
-            Supports MiniMessage formatting, PB4 placeholders (%deg:bearer%, %deg:item%, etc.),
-            and full hex color codes (<#RRGGBB>).
-            Multi-line text is supported using YAML block scalars (|).
-            """)
-        public MessageString text = new MessageString(PARSER, "");
+        public MessageEntry(String output, MessageString text) {
+            this.output = output;
+            this.text   = text;
+        }
     }
 
     // -------------------------------------------------------------------------
-    // Message fields
+    // Config fields
     // -------------------------------------------------------------------------
 
-    @Comment("""
-        Message shown by /dragonslegacy help.
-        Output mode: chat (recommended).
-        Lists all available subcommands for the player.
-        Example placeholders: none specific; use any PB4 global placeholders.
-        # Example:
-        # help:
-        #   output: "chat"
-        #   text: |
-        #     <gold><bold>Dragon's Legacy Commands</bold></gold>
-        #     <gray>  /dragonslegacy help</gray> - Show this help message
-        #     <gray>  /dragonslegacy bearer</gray> - Show the current bearer
-        #     <gray>  /dragonslegacy hunger on</gray> - Activate Dragon's Hunger
-        #     <gray>  /dragonslegacy hunger off</gray> - Deactivate Dragon's Hunger
-        """)
-    public MessageEntry help = defaultEntry("chat",
-        "<gold><bold>Dragon's Legacy Commands</bold></gold>\n"
-        + "<gray>  /dragonslegacy help</gray> - Show this help message\n"
-        + "<gray>  /dragonslegacy bearer</gray> - Show the current bearer\n"
-        + "<gray>  /dragonslegacy hunger on</gray> - Activate Dragon's Hunger\n"
-        + "<gray>  /dragonslegacy hunger off</gray> - Deactivate Dragon's Hunger"
-    );
+    @Setting("use_minimessage")
+    public boolean useMiniMessage = true;
 
-    @Setting("bearer_info")
-    @Comment("""
-        Shown by /dragonslegacy bearer when there is a current bearer.
-        Output mode: any.
-        Supported placeholders: %deg:bearer%, %deg:item%, %deg:pos%.
-        # Example:
-        # bearer_info:
-        #   output: "chat"
-        #   text: "<yellow>The %deg:item% is held by <gold>%deg:bearer%</>."
-        """)
-    public MessageEntry bearerInfo = defaultEntry("chat",
-        "<yellow>The %deg:item% is currently held by <gold>%deg:bearer%</>."
-    );
+    @Setting("output_modes")
+    public Map<String, String> outputModes = buildDefaultOutputModes();
 
-    @Setting("bearer_none")
-    @Comment("""
-        Shown by /dragonslegacy bearer when there is no bearer.
-        Output mode: any.
-        Supported placeholders: %deg:item%.
-        # Example:
-        # bearer_none:
-        #   output: "chat"
-        #   text: "<yellow>No one holds the %deg:item% yet."
-        """)
-    public MessageEntry bearerNone = defaultEntry("chat",
-        "<yellow>No one holds the %deg:item% yet."
-    );
-
-    @Setting("hunger_activate")
-    @Comment("""
-        Shown to the bearer when Dragon's Hunger is activated via /dragonslegacy hunger on.
-        Output mode: title or subtitle recommended for dramatic effect.
-        Supported placeholders: %deg:bearer%, %deg:item%.
-        # Example (title + subtitle combo):
-        # hunger_activate:
-        #   output: "title"
-        #   text: "<#FF4500><bold>Dragon's Hunger!</bold></#FF4500>"
-        """)
-    public MessageEntry hungerActivate = defaultEntry("title",
-        "<#FF4500><bold>Dragon's Hunger!</bold></#FF4500>"
-    );
-
-    @Setting("hunger_deactivate")
-    @Comment("""
-        Shown to the bearer when Dragon's Hunger is deactivated via /dragonslegacy hunger off.
-        Output mode: title or actionbar recommended.
-        Supported placeholders: %deg:bearer%, %deg:item%.
-        # Example:
-        # hunger_deactivate:
-        #   output: "title"
-        #   text: "<gray><italic>Dragon's Hunger fades...</italic></gray>"
-        """)
-    public MessageEntry hungerDeactivate = defaultEntry("title",
-        "<gray><italic>Dragon's Hunger fades...</italic></gray>"
-    );
-
-    @Setting("not_bearer")
-    @Comment("""
-        Shown when a non-bearer player tries to use /dragonslegacy hunger on or hunger off.
-        Output mode: actionbar recommended for brevity.
-        Supported placeholders: %deg:bearer%, %deg:item%.
-        # Example:
-        # not_bearer:
-        #   output: "actionbar"
-        #   text: "<red>You are not the Dragon Egg bearer!"
-        """)
-    public MessageEntry notBearer = defaultEntry("actionbar",
-        "<red>You are not the Dragon Egg bearer!"
-    );
-
-    @Setting("hunger_expired")
-    @Comment("""
-        Sent to the bearer when Dragon's Hunger expires naturally (duration runs out).
-        Output mode: title or actionbar recommended.
-        Supported placeholders: %deg:bearer%, %deg:item%.
-        # Example:
-        # hunger_expired:
-        #   output: "title"
-        #   text: "<gray><italic>Dragon's Hunger has ended.</italic></gray>"
-        """)
-    public MessageEntry hungerExpired = defaultEntry("title",
-        "<gray><italic>Dragon's Hunger has ended.</italic></gray>"
-    );
-
-    @Setting("elytra_blocked")
-    @Comment("""
-        Sent to the bearer when they try to use an elytra while Dragon's Hunger is active
-        and block_elytra is true in ability.yaml.
-        Output mode: actionbar recommended for brevity.
-        Supported placeholders: %deg:bearer%, %deg:item%.
-        # Example:
-        # elytra_blocked:
-        #   output: "actionbar"
-        #   text: "<red>You cannot use an elytra while Dragon's Hunger is active!"
-        """)
-    public MessageEntry elytraBlocked = defaultEntry("actionbar",
-        "<red>You cannot use an elytra while Dragon's Hunger is active!"
-    );
+    public Map<String, MessageString> text = buildDefaultText();
 
     // -------------------------------------------------------------------------
-    // Helpers
+    // Public API
     // -------------------------------------------------------------------------
 
     /**
-     * Creates a default {@link MessageEntry} with the given {@code output} mode and {@code text}.
+     * Returns a {@link MessageEntry} for the given key.
+     * If the output mode is missing or invalid, defaults to {@code "chat"} with a warning.
+     * If the text is missing, returns an empty string.
      *
-     * @param output the output mode string
-     * @param text   the MiniMessage text
-     * @return a new, pre-initialised {@link MessageEntry}
+     * @param key the message key (e.g. {@code "help"}, {@code "bearer_info"})
+     * @return a non-null {@link MessageEntry}
      */
-    private static MessageEntry defaultEntry(String output, String text) {
-        MessageEntry entry = new MessageEntry();
-        entry.output = output;
-        entry.text = new MessageString(PARSER, text);
-        return entry;
+    public MessageEntry getEntry(String key) {
+        // Resolve output mode
+        String rawMode = (outputModes != null) ? outputModes.get(key) : null;
+        String mode = "chat";
+        if (rawMode != null) {
+            String normalized = rawMode.toLowerCase(Locale.ROOT).trim();
+            if (VALID_MODES.contains(normalized)) {
+                mode = normalized;
+            } else {
+                DragonsLegacyMod.LOGGER.warn(
+                    "[Dragon's Legacy] messages.yaml: key '{}' has unknown output mode '{}', defaulting to 'chat'.",
+                    key, rawMode);
+            }
+        }
+        // Resolve text
+        MessageString ms = (text != null) ? text.get(key) : null;
+        if (ms == null) {
+            DragonsLegacyMod.LOGGER.warn(
+                "[Dragon's Legacy] messages.yaml: text for key '{}' is missing, using empty string.", key);
+            ms = new MessageString(PARSER, "");
+        }
+        return new MessageEntry(mode, ms);
+    }
+
+    // -------------------------------------------------------------------------
+    // Defaults
+    // -------------------------------------------------------------------------
+
+    private static Map<String, String> buildDefaultOutputModes() {
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("help",                              "chat");
+        map.put("bearer_info",                       "chat");
+        map.put("bearer_none",                       "chat");
+        map.put("hunger_activate",                   "title");
+        map.put("hunger_deactivate",                 "title");
+        map.put("hunger_expired",                    "title");
+        map.put("not_bearer",                        "actionbar");
+        map.put("elytra_blocked",                    "actionbar");
+        map.put("announcement_egg_picked_up",        "chat");
+        map.put("announcement_egg_dropped",          "chat");
+        map.put("announcement_egg_placed",           "chat");
+        map.put("announcement_bearer_changed",       "chat");
+        map.put("announcement_bearer_cleared",       "chat");
+        map.put("announcement_egg_teleported",       "chat");
+        map.put("announcement_ability_activated",    "chat");
+        map.put("announcement_ability_expired",      "chat");
+        map.put("announcement_ability_cooldown_started", "chat");
+        map.put("announcement_ability_cooldown_ended",   "chat");
+        return map;
+    }
+
+    private static Map<String, MessageString> buildDefaultText() {
+        Map<String, MessageString> map = new LinkedHashMap<>();
+        map.put("help",                new MessageString(PARSER,
+            "\n/dragonslegacy help\n/dragonslegacy bearer\n/dragonslegacy hunger on\n/dragonslegacy hunger off"));
+        map.put("bearer_info",         new MessageString(PARSER,
+            "<yellow>The %deg:item% is held by <gold>%deg:bearer%</>."));
+        map.put("bearer_none",         new MessageString(PARSER,
+            "<yellow>No one holds the %deg:item% yet.</yellow>"));
+        map.put("hunger_activate",     new MessageString(PARSER,
+            "<#FF4500><bold>Dragon's Hunger!</bold>"));
+        map.put("hunger_deactivate",   new MessageString(PARSER,
+            "<gray><italic>Dragon's Hunger fades...</italic></gray>"));
+        map.put("hunger_expired",      new MessageString(PARSER,
+            "<gray><italic>Dragon's Hunger has ended.</italic></gray>"));
+        map.put("not_bearer",          new MessageString(PARSER,
+            "<red>You are not the Dragon Egg bearer!</red>"));
+        map.put("elytra_blocked",      new MessageString(PARSER,
+            "<red>You cannot use an elytra while Dragon's Hunger is active!</red>"));
+        map.put("announcement_egg_picked_up",        new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> <player> picked up the egg."));
+        map.put("announcement_egg_dropped",          new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> The egg was dropped."));
+        map.put("announcement_egg_placed",           new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> Egg placed at <x>, <y>, <z>."));
+        map.put("announcement_bearer_changed",       new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> New bearer: <player>."));
+        map.put("announcement_bearer_cleared",       new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> The egg has no bearer."));
+        map.put("announcement_egg_teleported",       new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> Egg returned to spawn."));
+        map.put("announcement_ability_activated",    new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> <player> activated Dragon's Hunger."));
+        map.put("announcement_ability_expired",      new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> Dragon's Hunger expired."));
+        map.put("announcement_ability_cooldown_started", new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> Ability cooldown started."));
+        map.put("announcement_ability_cooldown_ended",   new MessageString(PARSER,
+            "<gold>[Dragon's Legacy]</gold> Ability ready."));
+        return map;
     }
 }
