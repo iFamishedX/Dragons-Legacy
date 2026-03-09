@@ -1,126 +1,106 @@
 # Migration Guide
 
-This page covers how to migrate your Dragon's Legacy configuration when updating between major config layout changes. The most significant change was the move from a **single monolithic config file** to the current **multi-file layout** introduced in `config_version: 1`.
+This page covers how to migrate your Dragon's Legacy configuration when updating between config layout versions.
 
 ---
 
-## Multi-File Layout (Current)
+## Current Layout (v2 — Seven Files)
 
-Since version 1, Dragon's Legacy uses seven separate YAML files instead of one large file:
+Since the v2 restructure, Dragon's Legacy uses these configuration files:
 
 ```
 config/dragonslegacy/
-├── config.yaml
-├── egg.yaml
-├── ability.yaml
-├── passive.yaml
-├── glow.yaml
-├── commands.yaml
-└── messages.yaml
+├── global.yaml    — Permissions API, command names, permission nodes
+├── egg.yaml       — Egg tracking, visibility, protections
+├── ability.yaml   — Dragon's Hunger ability settings
+├── passive.yaml   — Always-on passive bonuses
+├── infusion.yaml  — Infusion glow colors and materials
+├── messages.yaml  — All player-facing text
+└── logging.yaml   — Log output categories
 ```
-
-Each file has its own `config_version` key. The mod uses these versions to detect when a file is outdated and logs a warning if a newer version ships with new keys.
 
 ---
 
-## Migrating from a Single-File Config
+## Migrating from the v1 Layout (Seven Files)
 
-If you are coming from an early development build that used a single `config.yaml` for everything, follow these steps:
+The v1 layout used `config.yaml` + `commands.yaml` + `glow.yaml` instead of the current `global.yaml` + `infusion.yaml`. Follow these steps to migrate:
 
-### Step 1 — Back Up Your Old Config
+### Step 1 — Back Up Your Old Configs
 
 ```bash
 cp config/dragonslegacy/config.yaml config/dragonslegacy/config.yaml.bak
+cp config/dragonslegacy/commands.yaml config/dragonslegacy/commands.yaml.bak
+cp config/dragonslegacy/glow.yaml config/dragonslegacy/glow.yaml.bak
 ```
-
-Never discard your old config before confirming the migration is complete.
 
 ### Step 2 — Stop the Server
 
-Always stop the server before making config changes to avoid write conflicts.
+Always stop the server before making config changes.
 
-### Step 3 — Delete or Rename the Old File
+### Step 3 — Delete or Rename the Old Files
 
 ```bash
 mv config/dragonslegacy/config.yaml config/dragonslegacy/config_old.yaml
+mv config/dragonslegacy/commands.yaml config/dragonslegacy/commands_old.yaml
+mv config/dragonslegacy/glow.yaml config/dragonslegacy/glow_old.yaml
 ```
 
-### Step 4 — Start the Server Once to Generate New Files
+### Step 4 — Start the Server to Generate New Files
 
-Start the server. Dragon's Legacy will detect that the config files are missing and generate all seven files with default values:
+Dragon's Legacy detects missing files and generates `global.yaml`, `infusion.yaml`, and `logging.yaml` with default values.
 
-```
-[Dragon's Legacy] config.yaml not found, generating defaults...
-[Dragon's Legacy] egg.yaml not found, generating defaults...
-...
-```
+### Step 5 — Transfer Your Settings
 
-### Step 5 — Stop the Server Again and Transfer Your Settings
+| Old File | Old Key | New File | New Key |
+|---|---|---|---|
+| `config.yaml` | `enabled` | *(removed — mod is always enabled)* | — |
+| `commands.yaml` | `root` | `global.yaml` | `commands.root` |
+| `commands.yaml` | `aliases` | `global.yaml` | `commands.aliases` |
+| `commands.yaml` | `subcommands.help` | `global.yaml` | `commands.help.permission_node` |
+| `commands.yaml` | `subcommands.reload` | `global.yaml` | `commands.reload.permission_node` |
+| `glow.yaml` | `glow.enabled` | `infusion.yaml` | `infusion.enabled` |
+| `glow.yaml` | `glow.color` | `infusion.yaml` | `infusion.default_color` |
+| `glow.yaml` | `glow.crafting.materials.<item>` | `infusion.yaml` | `infusion.materials.<item>.color` |
+| `egg.yaml` | `offline_reset_days` | *(removed)* | — |
+| `egg.yaml` | `block_container_items: false` | `egg.yaml` | `block_container_items: true` (new default) |
 
-Open your old backup (`config_old.yaml`) alongside the newly generated files and move your custom values into the correct new file.
+### Key Renames in messages.yaml
 
-**Old key → New file mapping:**
+The following message keys were renamed:
 
-| Old Key (example) | New File | New Key |
+| Old Key | New Key |
+|---|---|
+| `hunger_activate` | `ability_activated` |
+| `hunger_deactivate` | `ability_deactivated` |
+| `hunger_expired` | `ability_expired` |
+| `announcement_egg_picked_up` | `egg_picked_up` |
+| `announcement_egg_dropped` | `egg_dropped` |
+| `announcement_egg_placed` | `egg_placed` |
+| `announcement_egg_teleported` | `egg_teleported` |
+| `announcement_bearer_changed` | `bearer_changed` |
+| `announcement_bearer_cleared` | `bearer_cleared` |
+| `announcement_ability_activated` | *(merged into `ability_activated`)* |
+| `announcement_ability_expired` | *(merged into `ability_expired`)* |
+| `announcement_ability_cooldown_started` | `ability_cooldown_started` |
+| `announcement_ability_cooldown_ended` | `ability_cooldown_ended` |
+
+A new `disabled: false` field was added to every message entry. Set `disabled: true` to silence any message without removing it.
+
+### ability.yaml / passive.yaml: amplifier → level
+
+The `amplifier` field was renamed to `level` and is now **1-based**:
+
+| Old | New | Effect Level |
 |---|---|---|
-| `enabled` | `config.yaml` | `enabled` |
-| `egg.search_radius` | `egg.yaml` | `search_radius` |
-| `egg.offline_reset_days` | `egg.yaml` | `offline_reset_days` |
-| `egg.visibility.*` | `egg.yaml` | `visibility.*` |
-| `egg.protection.*` | `egg.yaml` | `protection.*` |
-| `ability.duration_ticks` | `ability.yaml` | `duration_ticks` |
-| `ability.cooldown_ticks` | `ability.yaml` | `cooldown_ticks` |
-| `ability.effects` | `ability.yaml` | `effects` |
-| `ability.attributes` | `ability.yaml` | `attributes` |
-| `passive.effects` | `passive.yaml` | `effects` |
-| `passive.attributes` | `passive.yaml` | `attributes` |
-| `glow.*` | `glow.yaml` | `glow.*` |
-| `commands.*` | `commands.yaml` | `root`, `aliases`, `subcommands.*` |
-| `messages.*` | `messages.yaml` | `messages.*` |
+| `amplifier: 0` | `level: 1` | Level I |
+| `amplifier: 1` | `level: 2` | Level II |
+| `amplifier: 2` | `level: 3` | Level III |
 
-### Step 6 — Start the Server and Verify
+Update all entries in your `ability.yaml` and `passive.yaml` accordingly.
 
-Start the server and check the logs for any validation warnings:
+### ability.yaml: scaling removed
 
-```
-[Dragon's Legacy] Loaded config: egg.yaml (version 1)
-[Dragon's Legacy] Loaded config: ability.yaml (version 1)
-...
-[Dragon's Legacy] Dragon's Legacy enabled.
-```
-
-If you see `[WARN] Unknown key: ...`, a key was copied into the wrong file or uses the old naming convention. Check the [Configuration](Configuration.md) page for the correct key names.
-
----
-
-## Upgrading Config Version (Minor Updates)
-
-When a new mod version adds optional keys to an existing config file, the `config_version` number in that file will be bumped. The mod will:
-
-1. Load the file successfully using all existing keys.
-2. Log a warning such as:
-
-   ```
-   [Dragon's Legacy] [WARN] egg.yaml is version 1 but the current version is 2.
-   New keys will use defaults. Consider regenerating the file.
-   ```
-
-3. Apply default values for any missing keys.
-
-To upgrade cleanly:
-
-1. Note the warning and check the mod's changelog for what changed.
-2. Stop the server.
-3. Open the affected file.
-4. Add the new keys with your desired values (or the defaults from the changelog).
-5. Update `config_version` to the new version number.
-6. Restart the server or run `/dl reload`.
-
----
-
-## Upgrading Config Version (Major Restructure)
-
-If a future version introduces a structural change (not just new keys but reorganized sections or renamed keys), the migration guide for that version will be published here as a new section.
+The `scaling` section (`scaling.enabled`, `scaling.health_multiplier`, etc.) has been removed entirely. Delete this section from your `ability.yaml` if it exists.
 
 ---
 
@@ -129,9 +109,8 @@ If a future version introduces a structural change (not just new keys but reorga
 To completely reset a config file to defaults:
 
 1. Stop the server.
-2. Delete (or rename) the target config file.
+2. Delete the target config file.
 3. Start the server — the file is regenerated with all defaults.
-4. Stop the server and edit as needed.
 
 To reset **all** config files:
 
@@ -139,9 +118,7 @@ To reset **all** config files:
 rm -r config/dragonslegacy/
 ```
 
-Restart the server to regenerate everything.
-
-> **Note:** Resetting config files does **not** reset persistence data (bearer UUID, egg state). That data lives in the world's `data/dragonslegacy/` directory.
+> **Note:** Resetting config files does **not** reset persistence data. That lives in the world's `data/dragonslegacy/` directory.
 
 ---
 
@@ -149,8 +126,7 @@ Restart the server to regenerate everything.
 
 | Mistake | Symptom | Fix |
 |---|---|---|
-| Putting `effects` list in `config.yaml` instead of `passive.yaml` | Effects ignored silently | Move the block to `passive.yaml` |
-| Using `&` color codes in `messages.yaml` | Raw `&a` text visible in chat | Convert to MiniMessage: `<green>` |
-| Leaving old single-file `config.yaml` in place | Mod loads old file and ignores new files | Remove or rename the old file |
-| Forgetting to update `config_version` | Repeated upgrade warnings on every start | Set `config_version` to the current version number |
-| Editing command names and expecting `/dl reload` to apply them | Commands still use old names | Restart the server fully |
+| Using old `amplifier` field | Effects silently use `level: 1` (default) | Rename to `level` and add 1 |
+| Using old message keys (e.g., `hunger_activate`) | Warning in logs, message not found | Rename to new keys (see table above) |
+| Keeping `scaling:` in `ability.yaml` | YAML warning about unknown key | Remove the `scaling:` block |
+| Editing root/aliases in global.yaml and expecting reload to apply | Commands still use old names | Restart the server fully |

@@ -1,6 +1,6 @@
 # Commands
 
-Dragon's Legacy registers a single root command (`/dragonslegacy`, alias `/dl`) with several subcommands. All command names and aliases are configurable in `commands.yaml`.
+Dragon's Legacy registers a single root command (`/dragonslegacy`, alias `/dl`) with several subcommands. The root command name, aliases, and per-command permissions are configured in `global.yaml`.
 
 ---
 
@@ -23,8 +23,7 @@ The root command without any subcommand shows the help menu (same as `/dl help`)
 | `bearer` | `/dl bearer` | Display who currently holds the Dragon Egg |
 | `hunger on` | `/dl hunger on` | Activate Dragon's Hunger (bearer only) |
 | `hunger off` | `/dl hunger off` | Deactivate Dragon's Hunger (bearer or operator) |
-| `reload` | `/dl reload` | Reload all config files |
-| `test <key>` | `/dl test <key>` | Send a named message to yourself by its message key |
+| `reload` | `/dl reload` | Reload all config files (op required) |
 | `placeholders` | `/dl placeholders` | Print all placeholder values for your current context |
 
 ---
@@ -40,31 +39,20 @@ Displays the help page listing all available commands.
 /dl help
 ```
 
-**Permission:** None required (all players).
+**Permission:** Configured in `global.yaml` under `commands.help`. Default: no permission required.
 
 ---
 
 ### `/dl bearer`
 
-Shows the name of the current bearer and, depending on the egg's visibility settings, their approximate or exact location.
+Shows the name of the current bearer.
 
 **Usage:**
 ```
 /dl bearer
 ```
 
-**Example output:**
-```
-[Dragon's Legacy] The current bearer is Steve.
-  Egg location: ~120, ~64, ~-340 (Overworld)
-  Last seen: 42 seconds ago
-```
-
-**Permission:** None required (all players).
-
-**Notes:**
-- The location detail shown depends on the `visibility` settings in `egg.yaml`.
-- If no one holds the egg, the output reflects the last known egg state (placed, dropped, etc.).
+**Permission:** Configured in `global.yaml` under `commands.bearer`. Default: no permission required.
 
 ---
 
@@ -77,7 +65,7 @@ Activates the Dragon's Hunger ability for the bearer.
 /dl hunger on
 ```
 
-**Permission:** Bearer only (no separate permission node required — only the bearer can activate).
+**Permission:** Configured in `global.yaml` under `commands.hunger`. Default: no permission required (bearer-only enforcement is built-in).
 
 **Notes:**
 - The ability cannot be activated if:
@@ -102,7 +90,7 @@ Deactivates the Dragon's Hunger ability early.
 
 **Notes:**
 - All ability effects and attributes are removed immediately.
-- The cooldown timer **starts** from the moment the ability is deactivated, whether naturally or early.
+- The cooldown timer starts from the moment the ability is deactivated.
 
 ---
 
@@ -115,46 +103,12 @@ Reloads all seven configuration files from disk without restarting the server.
 /dl reload
 ```
 
-**Permission:** Operator (`op`) level required.
+**Permission:** Configured in `global.yaml` under `commands.reload`. Default: op level 3 required.
 
 **Notes:**
-- Messages, effects, attributes, glow colors, and visibility settings all update immediately.
-- **Command names and aliases** (`commands.yaml`) do **not** update on reload — a full server restart is required for those changes.
+- Messages, effects, attributes, infusion colors, and visibility settings all update immediately.
+- **Command names and aliases** (`global.yaml`) do **not** update on reload — a full server restart is required for those changes.
 - If a config file has a parse error, the mod keeps the previously loaded version and logs an error.
-
-**Example output:**
-```
-[Dragon's Legacy] Reloading configuration...
-[Dragon's Legacy] Loaded config: egg.yaml (version 1)
-[Dragon's Legacy] Loaded config: ability.yaml (version 1)
-...
-[Dragon's Legacy] Reload complete.
-```
-
----
-
-### `/dl test <key>`
-
-Sends a specific message (by its key in `messages.yaml`) to the command sender. Useful for previewing messages without triggering in-game events.
-
-**Usage:**
-```
-/dl test <message_key>
-```
-
-**Examples:**
-```
-/dl test help
-/dl test ability_start
-/dl test bearer_changed
-```
-
-**Permission:** Operator (`op`) level required.
-
-**Notes:**
-- The message is rendered with all placeholders filled in using the sender's current context.
-- The message is sent only to the sender, regardless of its configured `visibility`.
-- This is the primary tool for validating your `messages.yaml` edits. See [Troubleshooting](Troubleshooting.md) for a workflow.
 
 ---
 
@@ -167,57 +121,40 @@ Prints the current resolved value of every `%dragonslegacy:*%` placeholder for t
 /dl placeholders
 ```
 
-**Permission:** Operator (`op`) level required.
-
-**Example output:**
-```
-%dragonslegacy:player%        → Steve
-%dragonslegacy:bearer%        → Alex
-%dragonslegacy:egg_state%     → held
-%dragonslegacy:egg_location%  → 120, 64, -340
-%dragonslegacy:seconds%       → 120
-%dragonslegacy:online%        → 7
-...
-```
+**Permission:** Configured in `global.yaml` under `commands.placeholders`. Default: no permission required.
 
 See [Placeholders](Placeholders.md) for descriptions of each value.
 
 ---
 
-## Renaming Commands
+## Permission Configuration
 
-All command and subcommand names can be changed in `commands.yaml`:
+All public command permissions are configured in `global.yaml`:
 
 ```yaml
-root: "dragon"
-aliases:
-  - "drg"
-  - "dl"
-subcommands:
-  help: "?"
-  bearer: "who"
-  hunger: "power"
-  hunger_on: "activate"
-  hunger_off: "deactivate"
-  reload: "reload"
-  test: "preview"
-  placeholders: "vars"
+permissions_api: true
+
+commands:
+  help:
+    permission_node: "dragonslegacy.command.help"
+    op_level: 0
+
+  reload:
+    permission_node: "dragonslegacy.command.reload"
+    op_level: 3
 ```
 
-With this config the commands would become `/dragon ?`, `/dragon who`, `/dragon power activate`, etc.
-
-> **Important:** Command name changes require a **full server restart**. They cannot be applied with `/dl reload`.
+- When `permissions_api: true` → `permission_node` is used (LuckPerms).
+- When `permissions_api: false` → `op_level` is used (vanilla).
 
 ---
 
 ## Permission Summary
 
-| Command | Required Permission |
-|---|---|
-| `/dl help` | None |
-| `/dl bearer` | None |
-| `/dl hunger on` | Bearer only |
-| `/dl hunger off` | Bearer or operator |
-| `/dl reload` | Operator |
-| `/dl test <key>` | Operator |
-| `/dl placeholders` | Operator |
+| Command | LuckPerms Node | Default Op Level |
+|---|---|---|
+| `/dl help` | `dragonslegacy.command.help` | 0 |
+| `/dl bearer` | `dragonslegacy.command.bearer` | 0 |
+| `/dl hunger` | `dragonslegacy.command.hunger` | 0 |
+| `/dl reload` | `dragonslegacy.command.reload` | 3 |
+| `/dl placeholders` | `dragonslegacy.command.placeholders` | 0 |

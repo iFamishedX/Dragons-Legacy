@@ -34,7 +34,7 @@ The game tick at which the bearer was most recently online. This value is used t
 
 - The `%dragonslegacy:seconds%` placeholder (seconds since last seen).
 - The `%dragonslegacy:last_seen%` placeholder (human-readable duration).
-- The **offline reset** check: if `(current_time - last_seen) / 20` seconds exceeds `offline_reset_days × 86400`, the bearer is cleared.
+- The **offline reset** check: if `(current_time - last_seen) / 20` seconds exceeds the hardcoded 3-day threshold, the bearer is cleared.
 
 ---
 
@@ -109,22 +109,21 @@ The offline reset system monitors bearer absence and clears the bearer status af
 Configured in `egg.yaml`:
 
 ```yaml
-offline_reset_days: 3
+# offline_reset_days removed — hardcoded at 3 days
 ```
 
 ### How It Works
 
 1. When the bearer logs out, the **last seen tick** is recorded.
 2. On every server startup (and periodically during runtime), the mod checks how many real-time days have elapsed since `last_seen`.
-3. If the elapsed time exceeds `offline_reset_days`, the bearer UUID is cleared and `egg_initialized` remains `true`.
+3. If the elapsed time exceeds the 3-day threshold, the bearer UUID is cleared and `egg_initialized` remains `true`.
 4. The next player to pick up the egg becomes the new bearer.
 
 ### Disabling Offline Reset
 
-Set `offline_reset_days: 0` to never automatically reset the bearer:
+The offline reset threshold is hardcoded at 3 days. Future versions may expose this as a configuration option. To effectively disable the reset, watch for a dedicated config key in a future update.
 
 ```yaml
-offline_reset_days: 0
 ```
 
 With this setting, a bearer holds the title indefinitely until someone manually resets it (or a future admin command for this purpose is added).
@@ -155,5 +154,5 @@ With this setting, a bearer holds the title indefinitely until someone manually 
 There is currently no in-game command to manually wipe the bearer. Options available to administrators:
 
 - **Stop the server**, manually edit/delete the persistence file in `<world>/data/dragonslegacy/`, then restart. This is a last resort.
-- **Set `offline_reset_days: 1`** temporarily and wait for the next server startup cycle.
+- Stop the server and directly edit or clear the persistence file to reset the bearer.
 - Watch for an admin reset command in a future mod update.

@@ -37,6 +37,7 @@ Each named entry under `messages:` follows this structure:
 ```yaml
 messages:
   <message_key>:
+    disabled: false
     order: <integer>
     cooldown_ticks: <integer>
     global_cooldown_ticks: <integer>
@@ -51,11 +52,37 @@ messages:
 
 | Field | Type | Description |
 |---|---|---|
+| `disabled` | boolean | When `true`, this message is silenced entirely without removing it from the file |
 | `order` | integer | Sort order when multiple messages are displayed in sequence (lower = first) |
-| `cooldown_ticks` | integer | Per-player cooldown in ticks before this message can fire for the same player again (0 = no cooldown) |
-| `global_cooldown_ticks` | integer | Server-wide cooldown in ticks before this message can fire for any player again (0 = no cooldown) |
-| `conditions` | map | Placeholder-based conditions that must be satisfied before the message fires |
+| `cooldown_ticks` | integer | Per-player cooldown in ticks before this message can fire again for the same player (0 = no cooldown) |
+| `global_cooldown_ticks` | integer | Server-wide cooldown in ticks before this message can fire for any player (0 = no cooldown) |
+| `conditions` | map | State-based conditions that must be satisfied before the message fires |
 | `channels` | list | One or more delivery channels for the message |
+
+---
+
+## Message Keys
+
+The following message keys are built-in:
+
+| Key | When It Fires |
+|---|---|
+| `egg_picked_up` | A player picks up the Dragon Egg |
+| `egg_dropped` | The Dragon Egg is dropped |
+| `egg_placed` | The Dragon Egg is placed as a block |
+| `egg_teleported` | The Dragon Egg is returned to spawn |
+| `bearer_changed` | A new bearer picks up the egg |
+| `bearer_cleared` | The bearer is cleared (no current bearer) |
+| `ability_activated` | Dragon's Hunger is activated |
+| `ability_deactivated` | Dragon's Hunger is manually deactivated |
+| `ability_expired` | Dragon's Hunger expires naturally |
+| `ability_cooldown_started` | The ability cooldown begins |
+| `ability_cooldown_ended` | The ability cooldown ends |
+| `not_bearer` | A non-bearer tries to use a bearer-only command |
+| `elytra_blocked` | The bearer tries to use an Elytra while the ability is active |
+| `help` | The `/dl help` command is run |
+| `bearer_info` | The `/dl bearer` command with a known bearer |
+| `bearer_none` | The `/dl bearer` command with no current bearer |
 
 ---
 
@@ -71,16 +98,18 @@ Each entry in the `channels` list describes one way the message is sent.
 | `visibility` | Yes | Who receives the message (see Visibility below) |
 | `text` | Yes | The message text in MiniMessage format |
 
-A single message can have **multiple channels**. For example, you can send a chat message to everyone and simultaneously show an action bar message to the bearer only:
+A single message can have **multiple channels**:
 
 ```yaml
-channels:
-  - mode: "chat"
-    visibility: "everyone"
-    text: "%dragonslegacy:global_prefix%<aqua>%dragonslegacy:bearer%</aqua> has activated Dragon's Hunger!"
-  - mode: "actionbar"
-    visibility: "bearer"
-    text: "<gold><bold>DRAGON'S HUNGER ACTIVE</bold></gold>"
+ability_activated:
+  disabled: false
+  channels:
+    - mode: title
+      visibility: bearer_only
+      text: "<#FF4500><bold>Dragon's Hunger!</bold>"
+    - mode: chat
+      visibility: everyone
+      text: "%dragonslegacy:global_prefix%%dragonslegacy:player% activated Dragon's Hunger."
 ```
 
 ---
@@ -101,42 +130,46 @@ channels:
 
 | Value | Who Receives the Message |
 |---|---|
-| `self` | Only the player who triggered the event |
 | `everyone` | All online players |
-| `bearer` | Only the current bearer |
-| `non_bearer` | All online players except the bearer |
+| `bearer_only` | Only the current bearer |
+| `everyone_except_bearer` | All players except the bearer |
+| `executor_only` | Only the player who triggered the command/event |
+| `everyone_except_executor` | All players except the triggering player |
+
+---
+
+## Disabling a Message
+
+Set `disabled: true` on any message to silence it without removing it from the config:
+
+```yaml
+ability_cooldown_started:
+  disabled: true
+  channels:
+    - mode: chat
+      visibility: everyone
+      text: "..."
+```
 
 ---
 
 ## Conditions
 
-The `conditions` map lets you gate a message behind placeholder checks. If all conditions pass, the message fires; if any condition fails, that message entry is skipped.
+The `conditions` map lets you gate a message behind state checks:
 
 ```yaml
 conditions:
-  "%dragonslegacy:egg_state%": "held"
+  ability_active: true
+  egg_held: false
 ```
 
-Multiple conditions are combined with logical AND — all must be true.
-
-```yaml
-conditions:
-  "%dragonslegacy:egg_state%": "held"
-  "%dragonslegacy:online%": "5"
-```
-
-Conditions support both exact string matches and simple numeric comparisons (prefix the value with `>`, `<`, `>=`, or `<=`):
-
-```yaml
-conditions:
-  "%dragonslegacy:online%": ">=3"
-```
+Multiple conditions are combined with logical AND — all must pass.
 
 ---
 
 ## MiniMessage Formatting
 
-All text fields support the full [MiniMessage](https://docs.advntr.dev/minimessage/) specification. MiniMessage is **always enabled** — you cannot fall back to legacy `&` color codes.
+All text fields support the full [MiniMessage](https://docs.advntr.dev/minimessage/) specification. MiniMessage is **always enabled**.
 
 ### Common Tags
 
@@ -150,42 +183,25 @@ All text fields support the full [MiniMessage](https://docs.advntr.dev/minimessa
 | `<newline>` | Line break |
 | `<reset>` | Clear all formatting |
 
-### Example Messages
+### Example: Bearer Announcement
 
-**Bearer announcement:**
 ```yaml
 bearer_changed:
+  disabled: false
   order: 0
   cooldown_ticks: 0
   global_cooldown_ticks: 200
   conditions: {}
   channels:
-    - mode: "chat"
-      visibility: "everyone"
+    - mode: chat
+      visibility: everyone
       text: "%dragonslegacy:global_prefix%<yellow><bold>%dragonslegacy:bearer%</bold></yellow> <white>has claimed the Dragon Egg!</white>"
-    - mode: "title"
-      visibility: "bearer"
+    - mode: title
+      visibility: bearer_only
       text: "<gold><bold>You are the Bearer!</bold></gold>"
-    - mode: "subtitle"
-      visibility: "bearer"
+    - mode: subtitle
+      visibility: bearer_only
       text: "<gray>Hold the egg to receive its power.</gray>"
-```
-
-**Ability activation:**
-```yaml
-ability_start:
-  order: 0
-  cooldown_ticks: 0
-  global_cooldown_ticks: 0
-  conditions:
-    "%dragonslegacy:egg_state%": "held"
-  channels:
-    - mode: "actionbar"
-      visibility: "bearer"
-      text: "<gradient:#AA00FF:#FF0000><bold>Dragon's Hunger Awakened!</bold></gradient>"
-    - mode: "chat"
-      visibility: "non_bearer"
-      text: "%dragonslegacy:global_prefix%<red>%dragonslegacy:bearer%</red> <white>has activated Dragon's Hunger!</white>"
 ```
 
 ---
@@ -205,5 +221,5 @@ See [Placeholders](Placeholders.md) for the full list.
 ## Cooldown Tips
 
 - Set `cooldown_ticks: 0` and `global_cooldown_ticks: 0` for instantaneous triggers like command responses.
-- Use `global_cooldown_ticks` for server-wide announcements to avoid spam when many players trigger the same event rapidly.
-- `cooldown_ticks` is useful for per-player warnings (e.g., "you cannot do that right now") so the same player is not spammed.
+- Use `global_cooldown_ticks` for server-wide announcements to avoid spam.
+- `cooldown_ticks` is useful for per-player warnings so the same player is not spammed.
