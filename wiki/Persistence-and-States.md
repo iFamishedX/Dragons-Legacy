@@ -104,13 +104,7 @@ This is intentional behavior: ability state is transient and should not be expec
 
 ## Offline Reset Logic
 
-The offline reset system monitors bearer absence and clears the bearer status after a configurable number of days.
-
-Configured in `egg.yaml`:
-
-```yaml
-# offline_reset_days removed — hardcoded at 3 days
-```
+The offline reset system monitors bearer absence and clears the bearer status after 3 days of inactivity (hardcoded).
 
 ### How It Works
 
@@ -121,12 +115,7 @@ Configured in `egg.yaml`:
 
 ### Disabling Offline Reset
 
-The offline reset threshold is hardcoded at 3 days. Future versions may expose this as a configuration option. To effectively disable the reset, watch for a dedicated config key in a future update.
-
-```yaml
-```
-
-With this setting, a bearer holds the title indefinitely until someone manually resets it (or a future admin command for this purpose is added).
+The offline reset threshold is hardcoded at 3 days. To effectively prevent a bearer reset, you can manually clear the persistence file or wait for a future configuration option.
 
 ---
 

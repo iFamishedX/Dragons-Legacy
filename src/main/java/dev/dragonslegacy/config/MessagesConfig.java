@@ -89,6 +89,18 @@ public class MessagesConfig {
         public List<ChannelEntry> channels = new ArrayList<>();
     }
 
+    /** Singleton disabled entry returned for any disabled or missing message. */
+    private static final MessageEntry DISABLED_ENTRY;
+
+    static {
+        ChannelEntry empty = new ChannelEntry();
+        empty.mode = "chat";
+        empty.visibility = "everyone";
+        empty.text = "";
+        DISABLED_ENTRY = new MessageEntry("chat", empty.getResolvedText(),
+            List.of(empty), 0, 0, Map.of(), 0, true);
+    }
+
     /**
      * A resolved message entry - the primary backward-compatible type.
      * Points to the first channel's mode and text.
@@ -154,18 +166,9 @@ public class MessagesConfig {
             cfg.channels.add(fallback);
         }
 
-        // If disabled, return an empty entry that the output system will skip.
+        // If disabled, return the sentinel disabled entry that the output system will skip.
         if (cfg.disabled) {
-            MessageConfig empty = new MessageConfig();
-            empty.disabled = true;
-            empty.channels = new ArrayList<>();
-            ChannelEntry fallback = new ChannelEntry();
-            fallback.mode = "chat";
-            fallback.visibility = "everyone";
-            fallback.text = "";
-            empty.channels.add(fallback);
-            return new MessageEntry("chat", fallback.getResolvedText(), empty.channels,
-                0, 0, Map.of(), 0, true);
+            return DISABLED_ENTRY;
         }
 
         List<ChannelEntry> channels = cfg.channels != null ? cfg.channels : new ArrayList<>();
