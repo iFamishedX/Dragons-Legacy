@@ -1,10 +1,10 @@
 # Dragon's Legacy unified configuration
 
 egg:
-  search_radius: 25
+  search_radius: 25.0
   block_ender_chest: true
   block_container_items: false
-  offline_reset_days: 3
+  offline_reset_days: 3.0
   nearby_range: 64
   visibility:
     INVENTORY: "EXACT"
