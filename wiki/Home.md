@@ -36,6 +36,7 @@ Everything about the mod — from effect strengths, to command names, to every l
 | Page | Description |
 |---|---|
 | **[Installation](Installation.md)** | Requirements, dependencies, and step-by-step setup |
+| **[Gameplay](Gameplay.md)** | Bearer system, Dragon's Hunger, egg states, tracking, and player tips |
 | **[Configuration](Configuration.md)** | All 7 config files explained with annotated examples |
 | **[Messages and Prefixes](Messages-and-Prefixes.md)** | How messages.yaml works: channels, visibility, conditions, and formatting |
 | **[Commands](Commands.md)** | Every command, permission node, and usage example |
