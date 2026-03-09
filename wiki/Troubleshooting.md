@@ -182,6 +182,5 @@ Use the [MiniMessage viewer](https://webui.advntr.dev/) to preview your formatti
 If your issue is not covered here:
 
 1. Check the [FAQ](FAQ.md) page.
-2. Search the [issue tracker](#) for similar reports.
-3. Join the [Discord](#) and ask in the support channel — paste your log output and config file.
-4. File a new issue on [GitHub](#) with the reproduction steps, mod version, Minecraft version, and relevant log lines.
+2. Search the [issue tracker](https://github.com/iFamishedX/DragonEggGame/issues) for similar reports.
+3. File a new issue on [GitHub](https://github.com/iFamishedX/DragonEggGame/issues/new) with the reproduction steps, mod version, Minecraft version, and relevant log lines.

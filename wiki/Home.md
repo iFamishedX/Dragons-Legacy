@@ -73,7 +73,6 @@ For full installation instructions see **[Installation](Installation.md)**.
 
 ## Links
 
-- [CurseForge / Modrinth page](#) *(replace with actual link)*
-- [Source code on GitHub](#) *(replace with actual link)*
-- [Issue tracker](#) *(replace with actual link)*
-- [Discord](#) *(replace with actual link)*
+- [Source code on GitHub](https://github.com/iFamishedX/DragonEggGame)
+- [Issue tracker](https://github.com/iFamishedX/DragonEggGame/issues)
+- [Releases](https://github.com/iFamishedX/DragonEggGame/releases)

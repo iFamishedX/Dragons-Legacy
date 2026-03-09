@@ -20,7 +20,7 @@ Dragon's Legacy has **no other hard dependencies**. Fabric API is the only requi
 
 ## Downloading the Mod
 
-1. Go to the mod's [CurseForge](#) or [Modrinth](#) page.
+1. Go to the mod's [GitHub Releases](https://github.com/iFamishedX/DragonEggGame/releases) page.
 2. Make sure you select the file that matches your exact Minecraft version (e.g., `1.21.1`).
 3. Download the `.jar` file whose name starts with `dragons-legacy-`.
 
