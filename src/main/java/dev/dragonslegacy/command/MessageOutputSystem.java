@@ -45,10 +45,12 @@ public final class MessageOutputSystem {
     private static final Set<String> VALID_MODES =
         Set.of("chat", "actionbar", "bossbar", "title", "subtitle");
 
+    /** Default output mode used when the configured mode is absent or invalid. */
+    private static final String DEFAULT_OUTPUT_MODE = "chat";
+
     /** Bossbar duration in server ticks (5 seconds). */
     private static final int BOSSBAR_DURATION_TICKS = 100;
 
-    /** Active boss bars, keyed by player UUID.  Cleared on removal. */
     private static final ConcurrentHashMap<UUID, ServerBossEvent> ACTIVE_BOSS_BARS =
         new ConcurrentHashMap<>();
 
@@ -71,13 +73,13 @@ public final class MessageOutputSystem {
         if (player == null || entry == null) return;
 
         // Validate and normalise output mode
-        String mode = entry.output != null ? entry.output.toLowerCase(java.util.Locale.ROOT).trim() : "chat";
+        String mode = entry.output != null ? entry.output.toLowerCase(java.util.Locale.ROOT).trim() : DEFAULT_OUTPUT_MODE;
         if (!VALID_MODES.contains(mode)) {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] Unknown output mode '{}' in messages config; falling back to 'chat'.",
-                entry.output
+                "[Dragon's Legacy] Unknown output mode '{}' in messages config; falling back to '{}'.",
+                entry.output, DEFAULT_OUTPUT_MODE
             );
-            mode = "chat";
+            mode = DEFAULT_OUTPUT_MODE;
         }
 
         // Resolve text → MC Component
@@ -193,8 +195,8 @@ public final class MessageOutputSystem {
         if (entry.output == null || !VALID_MODES.contains(entry.output.toLowerCase(java.util.Locale.ROOT).trim())) {
             DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] messages.yaml: entry '{}' has invalid output mode '{}'. "
-                + "Allowed: {}. Falling back to 'chat'.",
-                key, entry.output, VALID_MODES
+                + "Allowed: {}. Falling back to '{}'.",
+                key, entry.output, VALID_MODES, DEFAULT_OUTPUT_MODE
             );
         }
         if (entry.text == null) {

@@ -6,9 +6,11 @@ import dev.dragonslegacy.DragonsLegacyMod;
 import dev.dragonslegacy.Perms;
 import dev.dragonslegacy.ability.AbilityEngine;
 import dev.dragonslegacy.ability.AbilityState;
+import dev.dragonslegacy.ability.AbilityTimers;
 import dev.dragonslegacy.config.CommandsConfig;
 import dev.dragonslegacy.config.MessagesConfig;
 import dev.dragonslegacy.egg.DragonsLegacy;
+import dev.dragonslegacy.egg.EggState;
 import dev.dragonslegacy.egg.EggTracker;
 import dev.dragonslegacy.utils.Utils;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -16,6 +18,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -288,7 +291,7 @@ public class DragonsLegacyCommands {
                 : bearerUUID.toString();
         }
 
-        dev.dragonslegacy.egg.EggState eggState = tracker.getCurrentState();
+        EggState eggState = tracker.getCurrentState();
         String stateName = switch (eggState) {
             case HELD_BY_PLAYER -> "held";
             case PLACED_BLOCK   -> "placed";
@@ -296,13 +299,13 @@ public class DragonsLegacyCommands {
             case UNKNOWN        -> "unknown";
         };
 
-        net.minecraft.core.BlockPos placed = tracker.getPlacedLocation();
-        String locationStr = (placed != null && eggState == dev.dragonslegacy.egg.EggState.PLACED_BLOCK)
+        BlockPos placed = tracker.getPlacedLocation();
+        String locationStr = (placed != null && eggState == EggState.PLACED_BLOCK)
             ? "x=" + placed.getX() + " y=" + placed.getY() + " z=" + placed.getZ()
             : "N/A";
 
         AbilityState abilityState = ability.getState();
-        dev.dragonslegacy.ability.AbilityTimers timers = ability.getTimers();
+        AbilityTimers timers = ability.getTimers();
         String abilityStatusStr = switch (abilityState) {
             case ACTIVE   -> "active";
             case COOLDOWN -> "cooldown";
@@ -475,7 +478,7 @@ public class DragonsLegacyCommands {
                 removeEggFromInventory(bearer);
             }
             case PLACED_BLOCK -> {
-                net.minecraft.core.BlockPos pos = tracker.getPlacedLocation();
+                BlockPos pos = tracker.getPlacedLocation();
                 if (pos == null) break;
                 for (ServerLevel level : server.getAllLevels()) {
                     if (level.getBlockState(pos).is(Blocks.DRAGON_EGG)) {
