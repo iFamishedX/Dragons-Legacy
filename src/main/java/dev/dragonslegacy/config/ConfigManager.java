@@ -21,24 +21,26 @@ import java.util.Map;
  *
  * <h3>Files managed</h3>
  * <ul>
- *   <li>{@code global.yaml}    – permissions API toggle, command names/aliases, per-command permission nodes</li>
- *   <li>{@code egg.yaml}       – egg behavior, visibility, and protection settings</li>
- *   <li>{@code ability.yaml}   – Dragon's Hunger ability settings</li>
- *   <li>{@code passive.yaml}   – passive effects and attributes</li>
- *   <li>{@code infusion.yaml}  – infusion color and anvil material settings</li>
- *   <li>{@code messages.yaml}  – all text output, output modes, and announcements</li>
- *   <li>{@code logging.yaml}   – which log categories go to console / ops</li>
+ *   <li>{@code global.yaml}       – permissions API toggle, command names/aliases, per-command permission nodes</li>
+ *   <li>{@code egg.yaml}          – egg behavior, visibility, and protection settings</li>
+ *   <li>{@code ability.yaml}      – Dragon's Hunger ability settings</li>
+ *   <li>{@code passive.yaml}      – passive effects and attributes</li>
+ *   <li>{@code infusion.yaml}     – infusion color and anvil material settings</li>
+ *   <li>{@code messages.yaml}     – all text output, output modes, and announcements</li>
+ *   <li>{@code logging.yaml}      – which log categories go to console / ops</li>
+ *   <li>{@code placeholders.yaml} – config-driven external placeholder definitions</li>
  * </ul>
  */
 public class ConfigManager {
 
-    private GlobalConfig        globalConfig   = new GlobalConfig();
-    private EggConfig           eggConfig      = new EggConfig();
-    private AbilityFileConfig   abilityFile    = new AbilityFileConfig();
-    private PassiveConfig       passiveConfig  = new PassiveConfig();
-    private InfusionConfig      infusionConfig = new InfusionConfig();
-    private MessagesConfig      messages       = new MessagesConfig();
-    private LoggingConfig       loggingConfig  = new LoggingConfig();
+    private GlobalConfig        globalConfig        = new GlobalConfig();
+    private EggConfig           eggConfig           = new EggConfig();
+    private AbilityFileConfig   abilityFile         = new AbilityFileConfig();
+    private PassiveConfig       passiveConfig       = new PassiveConfig();
+    private InfusionConfig      infusionConfig      = new InfusionConfig();
+    private MessagesConfig      messages            = new MessagesConfig();
+    private LoggingConfig       loggingConfig       = new LoggingConfig();
+    private PlaceholdersConfig  placeholdersConfig  = new PlaceholdersConfig();
 
     // -------------------------------------------------------------------------
     // Lifecycle
@@ -53,26 +55,28 @@ public class ConfigManager {
         } catch (IOException e) {
             DragonsLegacyMod.LOGGER.warn("[Dragon's Legacy] Could not create config directory.", e);
         }
-        globalConfig   = loadOrCreate("global.yaml",   GlobalConfig.class,       new GlobalConfig());
-        eggConfig      = loadOrCreate("egg.yaml",       EggConfig.class,          new EggConfig());
-        abilityFile    = loadOrCreate("ability.yaml",   AbilityFileConfig.class,  new AbilityFileConfig());
-        passiveConfig  = loadOrCreate("passive.yaml",   PassiveConfig.class,      new PassiveConfig());
-        infusionConfig = loadOrCreate("infusion.yaml",  InfusionConfig.class,     new InfusionConfig());
-        messages       = loadOrCreate("messages.yaml",  MessagesConfig.class,     new MessagesConfig());
-        loggingConfig  = loadOrCreate("logging.yaml",   LoggingConfig.class,      new LoggingConfig());
+        globalConfig       = loadOrCreate("global.yaml",       GlobalConfig.class,       new GlobalConfig());
+        eggConfig          = loadOrCreate("egg.yaml",           EggConfig.class,          new EggConfig());
+        abilityFile        = loadOrCreate("ability.yaml",       AbilityFileConfig.class,  new AbilityFileConfig());
+        passiveConfig      = loadOrCreate("passive.yaml",       PassiveConfig.class,      new PassiveConfig());
+        infusionConfig     = loadOrCreate("infusion.yaml",      InfusionConfig.class,     new InfusionConfig());
+        messages           = loadOrCreate("messages.yaml",      MessagesConfig.class,     new MessagesConfig());
+        loggingConfig      = loadOrCreate("logging.yaml",       LoggingConfig.class,      new LoggingConfig());
+        placeholdersConfig = loadOrCreate("placeholders.yaml",  PlaceholdersConfig.class, new PlaceholdersConfig());
     }
 
     /**
      * Re-reads all YAML files from disk.
      */
     public void reload() {
-        globalConfig   = reload("global.yaml",   GlobalConfig.class,       globalConfig);
-        eggConfig      = reload("egg.yaml",       EggConfig.class,          eggConfig);
-        abilityFile    = reload("ability.yaml",   AbilityFileConfig.class,  abilityFile);
-        passiveConfig  = reload("passive.yaml",   PassiveConfig.class,      passiveConfig);
-        infusionConfig = reload("infusion.yaml",  InfusionConfig.class,     infusionConfig);
-        messages       = reload("messages.yaml",  MessagesConfig.class,     messages);
-        loggingConfig  = reload("logging.yaml",   LoggingConfig.class,      loggingConfig);
+        globalConfig       = reload("global.yaml",       GlobalConfig.class,       globalConfig);
+        eggConfig          = reload("egg.yaml",           EggConfig.class,          eggConfig);
+        abilityFile        = reload("ability.yaml",       AbilityFileConfig.class,  abilityFile);
+        passiveConfig      = reload("passive.yaml",       PassiveConfig.class,      passiveConfig);
+        infusionConfig     = reload("infusion.yaml",      InfusionConfig.class,     infusionConfig);
+        messages           = reload("messages.yaml",      MessagesConfig.class,     messages);
+        loggingConfig      = reload("logging.yaml",       LoggingConfig.class,      loggingConfig);
+        placeholdersConfig = reload("placeholders.yaml",  PlaceholdersConfig.class, placeholdersConfig);
         DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] All configuration files reloaded.");
     }
 
@@ -87,6 +91,7 @@ public class ConfigManager {
     public InfusionConfig      getInfusion()       { return infusionConfig; }
     public MessagesConfig      getMessages()       { return messages; }
     public LoggingConfig       getLogging()        { return loggingConfig; }
+    public PlaceholdersConfig  getPlaceholders()   { return placeholdersConfig; }
 
     // -------------------------------------------------------------------------
     // Adapter getters (backward-compatible with legacy code)

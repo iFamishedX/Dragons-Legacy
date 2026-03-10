@@ -45,6 +45,7 @@ public class DragonsLegacyMod implements ModInitializer {
         Placeholders.register();
         LootConditions.register();
         configManager.init();
+        Placeholders.registerDynamic();
         DragonsLegacyCommands.register();
         Events.register();
 

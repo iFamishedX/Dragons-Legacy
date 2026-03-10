@@ -1,0 +1,146 @@
+config_version: 1
+
+# =============================================================================
+# Dragon's Legacy — Placeholder Configuration
+# =============================================================================
+#
+# Each entry under `placeholders:` registers one %dragonslegacy:name% with
+# PlaceholderAPI.
+#
+# INTERNAL placeholders ({x}, {state}, {bearer}, etc.) are resolved by the
+# engine at render time and are NOT registered separately with PlaceholderAPI.
+#
+# ── Definition structure ─────────────────────────────────────────────────────
+#
+#   placeholder_name:
+#     ignore_visibility: false   # true = always show exact values (admin / debug)
+#     conditions:                # evaluated top-to-bottom; first match wins
+#       - if: "{state} == 'HIDDEN'"
+#         output: "Hidden"
+#       - if: "{state} == 'PLAYER'"
+#         output: "Carried by {bearer}"
+#     format: "{round({x},50)}, {round({z},50)}"   # fallback when no condition matches
+#
+# ── Internal placeholders ────────────────────────────────────────────────────
+#   {x}  {y}  {z}            – exact egg block coordinates
+#   {dimension}               – resource-key of the egg's current dimension
+#   {state}                   – synthesised state: PLAYER / BLOCK / DROPPED / UNKNOWN / HIDDEN
+#                               (HIDDEN when visibility mode = HIDDEN and ignore_visibility = false)
+#   {bearer}                  – display name of the current bearer (or "none")
+#   {bearer_uuid}             – UUID string of the current bearer
+#   {executor}                – name of the player who triggered the placeholder
+#   {executor_uuid}           – UUID string of that player
+#   {last_seen}  {seconds}    – stub (0 until last-seen tracking is added)
+#   {ability_duration}        – remaining duration ticks for Dragon's Hunger
+#   {ability_cooldown}        – remaining cooldown ticks for Dragon's Hunger
+#   {online}                  – current online player count
+#   {max_players}             – server max players
+#   {world_time}  {tick}      – overworld day-time tick
+#   {real_time}               – server wall-clock time (HH:mm:ss)
+#   {egg_age}                 – stub (0 until egg-age tracking is added)
+#   {bearer_health}           – bearer's current health
+#   {bearer_max_health}       – bearer's maximum health
+#
+# ── Supported filters ────────────────────────────────────────────────────────
+#   upper(value)                       → uppercase
+#   lower(value)                       → lowercase
+#   capitalize(value)                  → First Letter Uppercase, rest lower
+#   round(value, precision)            → round to nearest multiple of precision
+#   abs(value)                         → absolute value
+#   format_number(value)               → locale-formatted number (1,234.56)
+#   default(value, fallback)           → fallback when value is blank or zero
+#   replace(value, target, replacement)→ string replacement
+#   if(condition, trueValue, falseValue)→ inline conditional
+#   color(value)                       → translate §-codes to & codes
+#   json(val1, val2, ...)              → JSON array ["val1","val2",...]
+#   distance_to_player()               → distance in blocks from egg to requesting player
+#
+# ── Visibility rules ─────────────────────────────────────────────────────────
+#   ignore_visibility: false (default)
+#     · {state} returns HIDDEN when the current visibility mode is HIDDEN
+#     · Use conditions to handle the HIDDEN case gracefully
+#     · {x}/{y}/{z} always return exact values; use round() in the format for
+#       approximate output when desired
+#   ignore_visibility: true
+#     · {state} always returns the real egg state (PLAYER / BLOCK / DROPPED / UNKNOWN)
+#     · Intended for admin / debug placeholders
+# =============================================================================
+
+placeholders:
+
+  # ---------------------------------------------------------------------------
+  # pretty_location — visibility-aware location summary
+  #   HIDDEN visibility  → "Hidden"
+  #   Egg held by player → "Carried by <bearer>"
+  #   Otherwise          → approximate X, Z (rounded to nearest 50 blocks)
+  # ---------------------------------------------------------------------------
+  pretty_location:
+    ignore_visibility: false
+    conditions:
+      - if: "{state} == 'HIDDEN'"
+        output: "Hidden"
+      - if: "{state} == 'PLAYER'"
+        output: "Carried by {bearer}"
+    format: "{round({x},50)}, {round({z},50)}"
+
+  # ---------------------------------------------------------------------------
+  # exact-xz — admin/debug: always show exact X and Z (bypasses visibility)
+  # ---------------------------------------------------------------------------
+  exact-xz:
+    ignore_visibility: true
+    conditions: []
+    format: "{x}, {z}"
+
+  # ---------------------------------------------------------------------------
+  # exact-xyz — admin/debug: always show exact X, Y, Z (bypasses visibility)
+  # ---------------------------------------------------------------------------
+  exact-xyz:
+    ignore_visibility: true
+    conditions: []
+    format: "{x}, {y}, {z}"
+
+  # ---------------------------------------------------------------------------
+  # state — synthesised egg state string
+  # ---------------------------------------------------------------------------
+  state:
+    ignore_visibility: false
+    conditions: []
+    format: "{state}"
+
+  # ---------------------------------------------------------------------------
+  # bearer_name — name of the current bearer (or "None")
+  # ---------------------------------------------------------------------------
+  bearer_name:
+    ignore_visibility: false
+    conditions:
+      - if: "{state} == 'HIDDEN'"
+        output: "Unknown"
+      - if: "{state} == 'PLAYER'"
+        output: "{bearer}"
+    format: "None"
+
+  # ---------------------------------------------------------------------------
+  # dimension — current egg dimension (hidden when visibility = HIDDEN)
+  # ---------------------------------------------------------------------------
+  dimension:
+    ignore_visibility: false
+    conditions:
+      - if: "{state} == 'HIDDEN'"
+        output: "Unknown"
+    format: "{dimension}"
+
+  # ---------------------------------------------------------------------------
+  # ability_status — admin/debug: ability duration and cooldown
+  # ---------------------------------------------------------------------------
+  ability_status:
+    ignore_visibility: true
+    conditions: []
+    format: "{state} | dur:{ability_duration} cd:{ability_cooldown}"
+
+  # ---------------------------------------------------------------------------
+  # server_info — online / max players
+  # ---------------------------------------------------------------------------
+  server_info:
+    ignore_visibility: true
+    conditions: []
+    format: "{online}/{max_players}"

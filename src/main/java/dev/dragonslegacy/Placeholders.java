@@ -5,6 +5,7 @@ import dev.dragonslegacy.ability.AbilityTimers;
 import dev.dragonslegacy.api.APIUtils;
 import dev.dragonslegacy.api.DragonEggAPI;
 import dev.dragonslegacy.config.Data;
+import dev.dragonslegacy.config.PlaceholdersConfig;
 import dev.dragonslegacy.config.VisibilityType;
 import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.egg.EggTracker;
@@ -203,5 +204,53 @@ public class Placeholders {
 
     public static void register() {
         PLACEHOLDERS.forEach(eu.pb4.placeholders.api.Placeholders::register);
+    }
+
+    /**
+     * Registers config-driven external placeholders from {@code placeholders.yaml}.
+     *
+     * <p>Each entry in {@link PlaceholdersConfig#placeholders} becomes one
+     * {@code %dragonslegacy:name%} placeholder.  The value is resolved at call
+     * time via {@link PlaceholderEngine#resolve(PlaceholdersConfig.PlaceholderDef, ServerPlayer)}.
+     *
+     * <p>This method must be called <em>after</em> {@link DragonsLegacyMod#configManager}
+     * has been initialised (i.e. after {@code configManager.init()}).
+     *
+     * <p>Safe to call on reload: existing handlers are silently overwritten because
+     * the PAPI registration is idempotent for the same {@link Identifier}.
+     */
+    public static void registerDynamic() {
+        PlaceholdersConfig cfg = DragonsLegacyMod.configManager.getPlaceholders();
+        if (cfg == null || cfg.placeholders == null || cfg.placeholders.isEmpty()) {
+            DragonsLegacyMod.LOGGER.warn(
+                "[Dragon's Legacy] placeholders.yaml contains no placeholder definitions.");
+            return;
+        }
+
+        int count = 0;
+        for (Map.Entry<String, PlaceholdersConfig.PlaceholderDef> entry : cfg.placeholders.entrySet()) {
+            String name = entry.getKey();
+            PlaceholdersConfig.PlaceholderDef def = entry.getValue();
+            if (def == null) continue;
+
+            Identifier id = dlIdentifier(name);
+            eu.pb4.placeholders.api.Placeholders.register(id, (ctx, arg) -> {
+                // Re-read the definition at render time so hot-reloads are reflected
+                PlaceholdersConfig liveCfg = DragonsLegacyMod.configManager.getPlaceholders();
+                PlaceholdersConfig.PlaceholderDef liveDef =
+                    (liveCfg != null && liveCfg.placeholders != null)
+                        ? liveCfg.placeholders.get(name)
+                        : null;
+                if (liveDef == null) liveDef = def; // fallback to snapshot at registration time
+
+                ServerPlayer player = ctx.player() != null ? ctx.player() : null;
+                String value = PlaceholderEngine.resolve(liveDef, player);
+                return PlaceholderResult.value(value);
+            });
+            count++;
+        }
+
+        DragonsLegacyMod.LOGGER.info(
+            "[Dragon's Legacy] Registered {} dynamic placeholder(s) from placeholders.yaml.", count);
     }
 }

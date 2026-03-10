@@ -501,6 +501,7 @@ public class DragonsLegacyCommands {
         legacy.reload(source.getServer());
         dev.dragonslegacy.features.Actions.register();
         dev.dragonslegacy.api.DragonEggAPI.init();
+        dev.dragonslegacy.Placeholders.registerDynamic();
         source.sendSuccess(
             () -> Component.literal("[Dragon's Legacy] Configuration reloaded successfully."),
             true
