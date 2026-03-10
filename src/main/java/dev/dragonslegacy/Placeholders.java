@@ -1,14 +1,11 @@
 package dev.dragonslegacy;
 
-import dev.dragonslegacy.ability.AbilityEngine;
-import dev.dragonslegacy.ability.AbilityTimers;
 import dev.dragonslegacy.api.APIUtils;
 import dev.dragonslegacy.api.DragonEggAPI;
 import dev.dragonslegacy.config.Data;
 import dev.dragonslegacy.config.PlaceholdersConfig;
 import dev.dragonslegacy.config.VisibilityType;
 import dev.dragonslegacy.egg.DragonsLegacy;
-import dev.dragonslegacy.egg.EggTracker;
 import eu.pb4.placeholders.api.PlaceholderHandler;
 import eu.pb4.placeholders.api.PlaceholderResult;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -16,7 +13,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.item.ItemStack;
@@ -24,7 +20,6 @@ import net.minecraft.world.item.Items;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class Placeholders {
 
@@ -61,86 +56,11 @@ public class Placeholders {
             return PlaceholderResult.value(prefix != null ? prefix : "");
         });
 
-        // Egg coordinates
-        ALL_PLACEHOLDERS.put(dlIdentifier("x"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("?");
-            return PlaceholderResult.value(String.valueOf(data.getBlockPos().getX()));
-        });
-
-        ALL_PLACEHOLDERS.put(dlIdentifier("y"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("?");
-            return PlaceholderResult.value(String.valueOf(data.getBlockPos().getY()));
-        });
-
-        ALL_PLACEHOLDERS.put(dlIdentifier("z"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("?");
-            return PlaceholderResult.value(String.valueOf(data.getBlockPos().getZ()));
-        });
-
-        ALL_PLACEHOLDERS.put(dlIdentifier("dimension"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("unknown");
-            String dim = data.worldId != null ? data.worldId : "unknown";
-            return PlaceholderResult.value(dim);
-        });
-
-        ALL_PLACEHOLDERS.put(dlIdentifier("egg_location"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("unknown");
-            return PlaceholderResult.value(data.getBlockPos().toShortString());
-        });
-
-        // Egg state
-        ALL_PLACEHOLDERS.put(dlIdentifier("egg_state"), (ctx, arg) -> {
-            DragonsLegacy legacy = DragonsLegacy.getInstance();
-            if (legacy == null) return PlaceholderResult.value("unknown");
-            return PlaceholderResult.value(
-                legacy.getEggTracker().getCurrentState().name().toLowerCase(java.util.Locale.ROOT));
-        });
-
-        ALL_PLACEHOLDERS.put(dlIdentifier("last_seen"), (ctx, arg) -> {
-            Data data = DragonEggAPI.getData();
-            if (data == null) return PlaceholderResult.value("never");
-            // Stub: returns "0" until last-seen tracking is implemented in a future update.
-            return PlaceholderResult.value("0");
-        });
-
-        // Stub: alias for last_seen in seconds format – will return a real value once tracking is implemented.
-        ALL_PLACEHOLDERS.put(dlIdentifier("seconds"), (ctx, arg) ->
-            PlaceholderResult.value("0"));
-
-        // Ability duration remaining (ticks)
-        ALL_PLACEHOLDERS.put(dlIdentifier("ability_duration"), (ctx, arg) -> {
-            DragonsLegacy legacy = DragonsLegacy.getInstance();
-            if (legacy == null) return PlaceholderResult.value("0");
-            AbilityTimers timers = legacy.getAbilityEngine().getTimers();
-            return PlaceholderResult.value(String.valueOf(timers.getDurationRemaining()));
-        });
-
-        // Ability cooldown remaining (ticks)
-        ALL_PLACEHOLDERS.put(dlIdentifier("ability_cooldown"), (ctx, arg) -> {
-            DragonsLegacy legacy = DragonsLegacy.getInstance();
-            if (legacy == null) return PlaceholderResult.value("0");
-            AbilityTimers timers = legacy.getAbilityEngine().getTimers();
-            return PlaceholderResult.value(String.valueOf(timers.getCooldownRemaining()));
-        });
-
-        // Online player count
-        ALL_PLACEHOLDERS.put(dlIdentifier("online"), (ctx, arg) -> {
-            MinecraftServer server = DragonsLegacyMod.server;
-            if (server == null) return PlaceholderResult.value("0");
-            return PlaceholderResult.value(String.valueOf(server.getPlayerList().getPlayerCount()));
-        });
-
-        // Max players
-        ALL_PLACEHOLDERS.put(dlIdentifier("max_players"), (ctx, arg) -> {
-            MinecraftServer server = DragonsLegacyMod.server;
-            if (server == null) return PlaceholderResult.value("0");
-            return PlaceholderResult.value(String.valueOf(server.getPlayerList().getMaxPlayers()));
-        });
+        // NOTE: Raw egg coordinates, state, dimension, ability timers, server counts, and
+        // other internal values are intentionally NOT registered here.  They are available
+        // as internal template variables ({x}, {y}, {z}, {state}, {bearer}, etc.) inside
+        // placeholders.yaml format/output strings and are resolved by PlaceholderEngine.
+        // External PAPI placeholders for these values are defined entirely via placeholders.yaml.
 
         // =====================================================================
         // Legacy "deg:" namespace (backward compat)

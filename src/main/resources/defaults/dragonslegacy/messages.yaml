@@ -176,7 +176,7 @@ messages:
     channels:
       - mode: chat
         visibility: everyone
-        text: "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:x%, %dragonslegacy:y%, %dragonslegacy:z%."
+        text: "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:exact-xyz%."
 
   egg_teleported:
     disabled: false

@@ -4,20 +4,61 @@ This page covers how to migrate your Dragon's Legacy configuration when updating
 
 ---
 
-## Current Layout (v2 — Seven Files)
+## Current Layout (v3 — Eight Files)
 
-Since the v2 restructure, Dragon's Legacy uses these configuration files:
+Since the v3 restructure, Dragon's Legacy uses these configuration files:
 
 ```
 config/dragonslegacy/
-├── global.yaml    — Permissions API, command names, permission nodes
-├── egg.yaml       — Egg tracking, visibility, protections
-├── ability.yaml   — Dragon's Hunger ability settings
-├── passive.yaml   — Always-on passive bonuses
-├── infusion.yaml  — Infusion glow colors and materials
-├── messages.yaml  — All player-facing text
-└── logging.yaml   — Log output categories
+├── global.yaml        — Permissions API, command names, permission nodes
+├── egg.yaml           — Egg tracking, visibility, protections
+├── ability.yaml       — Dragon's Hunger ability settings
+├── passive.yaml       — Always-on passive bonuses
+├── infusion.yaml      — Infusion glow colors and materials
+├── messages.yaml      — All player-facing text
+├── logging.yaml       — Log output categories
+└── placeholders.yaml  — Config-driven external PlaceholderAPI placeholders (new in v3)
 ```
+
+---
+
+## Migrating from the v2 Layout (Seven Files)
+
+The v3 update introduces `placeholders.yaml`, overhauls the placeholder system, and removes several raw PAPI placeholders that bypassed visibility. Follow these steps to migrate:
+
+### Step 1 — Start the Server to Generate the New File
+
+Dragon's Legacy detects the missing `placeholders.yaml` and generates it automatically with the default placeholder definitions (`pretty_location`, `exact-xz`, `exact-xyz`, `state`, `bearer_name`, `dimension`, `ability_status`, `server_info`).
+
+### Step 2 — Update Custom messages.yaml Entries
+
+The following raw coordinate/state PAPI placeholders have been **removed** from the static registration because they bypassed the visibility system. Replace them with config-driven alternatives:
+
+| Removed placeholder | Recommended replacement | Notes |
+|---|---|---|
+| `%dragonslegacy:x%` | `%dragonslegacy:exact-xz%` (or custom entry) | Use `exact-xyz` for X, Y, Z together |
+| `%dragonslegacy:y%` | Define a custom entry in `placeholders.yaml` | |
+| `%dragonslegacy:z%` | `%dragonslegacy:exact-xz%` (or custom entry) | |
+| `%dragonslegacy:dimension%` | `%dragonslegacy:dimension%` (config-driven, unchanged name) | |
+| `%dragonslegacy:egg_location%` | `%dragonslegacy:exact-xyz%` | |
+| `%dragonslegacy:egg_state%` | `%dragonslegacy:state%` (config-driven) | |
+| `%dragonslegacy:ability_duration%` | Define a custom entry in `placeholders.yaml` with `format: "{ability_duration}"` |  |
+| `%dragonslegacy:ability_cooldown%` | Define a custom entry in `placeholders.yaml` with `format: "{ability_cooldown}"` | |
+| `%dragonslegacy:online%` | `%dragonslegacy:server_info%` (or custom entry) | |
+| `%dragonslegacy:max_players%` | `%dragonslegacy:server_info%` (or custom entry) | |
+| `%dragonslegacy:last_seen%` | Internal stub; define in `placeholders.yaml` if needed | |
+| `%dragonslegacy:seconds%` | Internal stub; define in `placeholders.yaml` if needed | |
+
+### Step 3 — Review Custom Placeholder Plugins
+
+Any external plugin or scoreboards that used `%dragonslegacy:x%`, `%dragonslegacy:y%`, `%dragonslegacy:z%`, `%dragonslegacy:egg_state%`, etc. directly will need to be updated to use config-driven equivalents from `placeholders.yaml`.
+
+The static placeholders that **remain unchanged** are:
+- `%dragonslegacy:global_prefix%`
+- `%dragonslegacy:player%`
+- `%dragonslegacy:executor%`
+- `%dragonslegacy:executor_uuid%`
+- `%dragonslegacy:bearer%`
 
 ---
 

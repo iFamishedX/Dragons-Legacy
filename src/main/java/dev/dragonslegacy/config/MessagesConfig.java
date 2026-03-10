@@ -326,7 +326,7 @@ public class MessagesConfig {
 
         map.put("egg_placed", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_placed", Boolean.TRUE),
             List.of(channel("chat", "everyone",
-                "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:x%, %dragonslegacy:y%, %dragonslegacy:z%."))));
+                "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:exact-xyz%."))));
 
         map.put("egg_teleported", buildEntry(0, 0, 0, Map.of(),
             List.of(channel("chat", "everyone",

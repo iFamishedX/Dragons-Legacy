@@ -30,7 +30,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
-import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static net.minecraft.commands.Commands.argument;
@@ -527,41 +527,31 @@ public class DragonsLegacyCommands {
             return -1;
         }
         DragonsLegacy legacy = DragonsLegacy.getInstance();
-        EggTracker tracker = (legacy != null) ? legacy.getEggTracker() : null;
-        dev.dragonslegacy.ability.AbilityEngine ability = (legacy != null) ? legacy.getAbilityEngine() : null;
-
-        String bearer = "none";
-        String eggState = "unknown";
-        if (tracker != null) {
-            UUID bearerUUID = tracker.getCurrentBearer();
-            if (bearerUUID != null) {
-                ServerPlayer bp = DragonsLegacyMod.server != null
-                    ? DragonsLegacyMod.server.getPlayerList().getPlayer(bearerUUID) : null;
-                bearer = bp != null ? bp.getGameProfile().name() : bearerUUID.toString();
-            }
-            eggState = tracker.getCurrentState().name().toLowerCase(Locale.ROOT);
-        }
-        String abilityDuration = ability != null
-            ? String.valueOf(ability.getTimers().getDurationRemaining()) : "0";
-        String abilityCooldown = ability != null
-            ? String.valueOf(ability.getTimers().getCooldownRemaining()) : "0";
-        int online = DragonsLegacyMod.server != null
-            ? DragonsLegacyMod.server.getPlayerList().getPlayerCount() : 0;
-        int maxPlayers = DragonsLegacyMod.server != null
-            ? DragonsLegacyMod.server.getPlayerList().getMaxPlayers() : 0;
 
         MutableComponent msg = Component.empty()
             .append(Component.literal("[Dragon's Legacy] Placeholder values:\n").withStyle(ChatFormatting.GOLD))
+            // Static PAPI placeholders (player-context aware, always registered)
             .append(Component.literal("  %dragonslegacy:player%           = " + player.getGameProfile().name() + "\n"))
             .append(Component.literal("  %dragonslegacy:executor%         = " + player.getGameProfile().name() + "\n"))
             .append(Component.literal("  %dragonslegacy:executor_uuid%    = " + player.getUUID() + "\n"))
-            .append(Component.literal("  %dragonslegacy:bearer%           = " + bearer + "\n"))
-            .append(Component.literal("  %dragonslegacy:global_prefix%    = (configured prefix)\n"))
-            .append(Component.literal("  %dragonslegacy:egg_state%        = " + eggState + "\n"))
-            .append(Component.literal("  %dragonslegacy:ability_duration% = " + abilityDuration + "\n"))
-            .append(Component.literal("  %dragonslegacy:ability_cooldown% = " + abilityCooldown + "\n"))
-            .append(Component.literal("  %dragonslegacy:online%           = " + online + "\n"))
-            .append(Component.literal("  %dragonslegacy:max_players%      = " + maxPlayers + "\n"));
+            .append(Component.literal("  %dragonslegacy:bearer%           = " + dev.dragonslegacy.api.APIUtils.getBearer() + "\n"))
+            .append(Component.literal("  %dragonslegacy:global_prefix%    = "
+                + DragonsLegacyMod.configManager.getMessages().prefix + "\n"));
+
+        // Dynamic config-driven placeholders from placeholders.yaml
+        dev.dragonslegacy.config.PlaceholdersConfig cfg = DragonsLegacyMod.configManager.getPlaceholders();
+        if (cfg != null && cfg.placeholders != null && !cfg.placeholders.isEmpty()) {
+            msg.append(Component.literal("  --- config-driven placeholders ---\n").withStyle(ChatFormatting.GRAY));
+            for (Map.Entry<String, dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef> entry
+                    : cfg.placeholders.entrySet()) {
+                String name = entry.getKey();
+                dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef def = entry.getValue();
+                if (def == null) continue;
+                String value = dev.dragonslegacy.PlaceholderEngine.resolve(def, player);
+                msg.append(Component.literal("  %dragonslegacy:" + name + "% = " + value + "\n"));
+            }
+        }
+
         source.sendSuccess(() -> msg, false);
         return 1;
     }

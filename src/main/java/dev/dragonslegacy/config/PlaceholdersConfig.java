@@ -171,11 +171,39 @@ public class PlaceholdersConfig {
             "{state} | dur:{ability_duration} cd:{ability_cooldown}"
         ));
 
+        // ability_duration – remaining Dragon's Hunger duration in ticks
+        map.put("ability_duration", new PlaceholderDef(
+            true,
+            List.of(),
+            "{ability_duration}"
+        ));
+
+        // ability_cooldown – remaining Dragon's Hunger cooldown in ticks
+        map.put("ability_cooldown", new PlaceholderDef(
+            true,
+            List.of(),
+            "{ability_cooldown}"
+        ));
+
         // server_info – online/max players
         map.put("server_info", new PlaceholderDef(
             true,
             List.of(),
             "{online}/{max_players}"
+        ));
+
+        // online – current online player count
+        map.put("online", new PlaceholderDef(
+            true,
+            List.of(),
+            "{online}"
+        ));
+
+        // max_players – server maximum player count
+        map.put("max_players", new PlaceholderDef(
+            true,
+            List.of(),
+            "{max_players}"
         ));
 
         return map;
