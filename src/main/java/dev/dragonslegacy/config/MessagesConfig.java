@@ -95,8 +95,8 @@ public class MessagesConfig {
          * {@code audience} over the legacy {@code visibility} field.
          */
         public String getAudience() {
-            if (audience != null && !audience.isBlank()) return audience.toLowerCase(java.util.Locale.ROOT).trim();
-            if (visibility != null && !visibility.isBlank()) return visibility.toLowerCase(java.util.Locale.ROOT).trim();
+            if (audience != null && !audience.isBlank()) return audience.toLowerCase(Locale.ROOT).trim();
+            if (visibility != null && !visibility.isBlank()) return visibility.toLowerCase(Locale.ROOT).trim();
             return "everyone";
         }
 
@@ -118,8 +118,8 @@ public class MessagesConfig {
     @ConfigSerializable
     public static class MessageConfig {
         /**
-         * When {@code false} (new format) or {@code disabled: true} (legacy format),
-         * this message will not be sent.
+         * When {@code true} (and {@code disabled} is {@code false}), this message will be sent.
+         * Set to {@code false} to silence this message regardless of conditions.
          */
         public boolean enabled = true;
 

@@ -3,24 +3,25 @@ config_version: 1
 prefix: ""
 
 # =============================================================================
-# Dragon's Legacy — Message Configuration
+# Dragon's Legacy — Message Configuration (NEW FORMAT)
 # =============================================================================
 #
 # MiniMessage is always enabled.
-# PlaceholderAPI placeholders are resolved when PlaceholderAPI is present on the server.
-# Dragon's Legacy internal placeholders (%dragonslegacy:*%) are always enabled.
+# PlaceholderAPI is always enabled.
+# Dragon's Legacy placeholders are always enabled.
 #
-# Each message entry:
-#   enabled: true/false          — set false to silence this message entirely
-#   cooldown_ticks: N            — per-player cooldown before this message fires again
-#   global_cooldown_ticks: N     — server-wide cooldown before this message fires again
-#   conditions: { key: bool }    — map of boolean conditions that must all match
-#   channels:                    — named channel objects (order: alphabetical by key)
+# Each message:
+#   enabled: true/false
+#   cooldown_ticks: per-player cooldown (ticks)
+#   global_cooldown_ticks: global cooldown (ticks)
+#   conditions: map of booleans (all must be true)
+#
+#   channels:
 #     channel_name:
 #       mode:     chat | actionbar | title | subtitle | bossbar
 #       audience: everyone | bearer_only | everyone_except_bearer |
 #                 executor_only | everyone_except_executor
-#       priority: integer — higher priority channels fire first (default 0)
+#       priority: integer (higher fires first, default 0)
 #       delay:    ticks to wait before sending (default 0)
 #       text:     "<MiniMessage text>"
 # =============================================================================
