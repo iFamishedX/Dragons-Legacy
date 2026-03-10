@@ -104,9 +104,7 @@ public final class MessageOutputSystem {
 
         for (MessagesConfig.ChannelEntry channel : channels) {
             String mode = normalizeMode(channel.mode);
-            String visibility = channel.visibility != null
-                ? channel.visibility.toLowerCase(Locale.ROOT).trim()
-                : "everyone";
+            String visibility = channel.getAudience();
 
             for (ServerPlayer player : allPlayers) {
                 if (!matchesVisibility(visibility, player, executor, bearer)) continue;

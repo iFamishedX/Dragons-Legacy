@@ -185,7 +185,8 @@ public class ConfigManager {
     private void addTemplate(Map<String, String> templates, String templateKey, String messageKey) {
         MessagesConfig.MessageConfig cfg = (messages.messages != null) ? messages.messages.get(messageKey) : null;
         if (cfg != null && cfg.channels != null && !cfg.channels.isEmpty()) {
-            templates.put(templateKey, cfg.channels.get(0).text != null ? cfg.channels.get(0).text : "");
+            MessagesConfig.ChannelEntry first = cfg.channels.values().iterator().next();
+            templates.put(templateKey, first.text != null ? first.text : "");
         } else {
             templates.put(templateKey, AnnouncementsConfig.defaults().getOrDefault(templateKey, ""));
         }

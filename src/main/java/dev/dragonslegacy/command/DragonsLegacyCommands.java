@@ -7,6 +7,7 @@ import dev.dragonslegacy.Perms;
 import dev.dragonslegacy.ability.AbilityEngine;
 import dev.dragonslegacy.ability.AbilityState;
 import dev.dragonslegacy.ability.AbilityTimers;
+import dev.dragonslegacy.config.GlobalConfig;
 import dev.dragonslegacy.config.MessagesConfig;
 import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.egg.EggState;
@@ -37,32 +38,39 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 /**
- * Registers and handles the new {@code /dragonslegacy} (alias {@code /dl}) command tree.
+ * Registers and handles the {@code /dragonslegacy} (alias {@code /dl}) command tree.
  *
- * <h3>Public subcommands</h3>
+ * <p>All commands are always registered with Brigadier — no {@code .requires()} filters
+ * are applied at the node level.  Permission enforcement is performed at the start of
+ * each executor method so that the console, operators, and permission-plugin users all
+ * receive clear feedback instead of a silent "unknown command".
+ *
+ * <h3>Public subcommands (available to all players and console)</h3>
  * <ul>
- *   <li>{@code /dragonslegacy help}       – Display configurable help message.</li>
- *   <li>{@code /dragonslegacy bearer}     – Show the current egg bearer.</li>
- *   <li>{@code /dragonslegacy hunger on}  – Activate Dragon's Hunger (bearer only).</li>
- *   <li>{@code /dragonslegacy hunger off} – Deactivate Dragon's Hunger (bearer only).</li>
+ *   <li>{@code /dragonslegacy help}         – Display configurable help message.</li>
+ *   <li>{@code /dragonslegacy bearer}       – Show the current egg bearer.</li>
+ *   <li>{@code /dragonslegacy hunger on}    – Activate Dragon's Hunger (bearer only).</li>
+ *   <li>{@code /dragonslegacy hunger off}   – Deactivate Dragon's Hunger (bearer only).</li>
  *   <li>{@code /dragonslegacy placeholders} – List all placeholder values.</li>
  * </ul>
  *
- * <h3>Admin subcommands (requires operator permission)</h3>
+ * <h3>Admin subcommands (require {@code dragonslegacy.admin} or op level 3+)</h3>
  * <ul>
  *   <li>{@code /dragonslegacy info}               – Full egg/ability status.</li>
  *   <li>{@code /dragonslegacy setbearer <player>} – Force-assign the bearer.</li>
  *   <li>{@code /dragonslegacy clearability}       – Deactivate the ability.</li>
  *   <li>{@code /dragonslegacy resetcooldown}      – Reset the cooldown.</li>
- *   <li>{@code /dragonslegacy reload}             – Reload all configs (op required).</li>
+ *   <li>{@code /dragonslegacy reload}             – Reload all configs.</li>
+ *   <li>{@code /dragonslegacy papitest}           – Test PlaceholderAPI integration.</li>
  * </ul>
- *
- * <p>All user-facing output is read from {@code config/dragonslegacy/messages.yaml}
- * via {@link MessagesConfig} and rendered by {@link MessageOutputSystem}.
- * Command names, aliases, and permission settings are loaded from
- * {@code config/dragonslegacy/global.yaml}.
  */
 public class DragonsLegacyCommands {
+
+    // Hard-coded admin permission node used for all operator-only subcommands.
+    private static final String PERM_ADMIN  = "dragonslegacy.admin";
+    // Per-subcommand permission nodes (fall back to PERM_ADMIN when not explicitly granted).
+    private static final String PERM_RELOAD      = "dragonslegacy.command.reload";
+    private static final String PERM_PAPITEST    = "dragonslegacy.command.papitest";
 
     private DragonsLegacyCommands() {}
 
@@ -71,19 +79,18 @@ public class DragonsLegacyCommands {
     // -------------------------------------------------------------------------
 
     /**
-     * Registers the {@code /dragonslegacy} command tree (and its {@code /dl} alias)
+     * Registers the {@code /dragonslegacy} command tree (and its configured aliases)
      * with the Fabric command dispatcher.  Must be called during mod initialisation.
      *
-     * <p>Command names, aliases, and per-command permission settings are read from
-     * {@link dev.dragonslegacy.config.GlobalConfig} via {@code global.yaml}.
+     * <p>No {@code .requires()} predicates are attached to any node — all commands are
+     * always visible and reachable.  Permission checks happen inside each executor.
      */
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dev.dragonslegacy.config.GlobalConfig global = DragonsLegacyMod.configManager.getGlobal();
-            dev.dragonslegacy.config.GlobalConfig.CommandsSection cmds =
-                global.commands != null ? global.commands : new dev.dragonslegacy.config.GlobalConfig.CommandsSection();
+            GlobalConfig global = DragonsLegacyMod.configManager.getGlobal();
+            GlobalConfig.CommandsSection cmds =
+                global.commands != null ? global.commands : new GlobalConfig.CommandsSection();
 
-            // Resolve root name and subcommand names (fall back to defaults if blank)
             String rootName         = nonEmpty(cmds.root, "dragonslegacy");
             String helpName         = "help";
             String bearerName       = "bearer";
@@ -93,23 +100,20 @@ public class DragonsLegacyCommands {
             String reloadName       = "reload";
             String placeholdersName = "placeholders";
 
-            // Validate messages.yaml on registration so misconfigurations are logged early
+            // Validate messages.yaml on registration so misconfigurations are logged early.
             MessageOutputSystem.validateAll(DragonsLegacyMod.configManager.getMessages());
 
-            // Build and register the root command
+            // Build and register the root command — no .requires() on any node.
             dispatcher.register(
                 literal(rootName)
                     // ── Public subcommands ──────────────────────────────────
                     .then(literal(helpName)
-                        .requires(requirePerm(global, cmds.help))
                         .executes(DragonsLegacyCommands::help)
                     )
                     .then(literal(bearerName)
-                        .requires(requirePerm(global, cmds.bearer))
                         .executes(DragonsLegacyCommands::bearer)
                     )
                     .then(literal(hungerName)
-                        .requires(requirePerm(global, cmds.hunger))
                         .then(literal(onName)
                             .executes(DragonsLegacyCommands::hungerOn)
                         )
@@ -118,35 +122,32 @@ public class DragonsLegacyCommands {
                         )
                     )
                     .then(literal(reloadName)
-                        .requires(requirePerm(global, cmds.reload))
                         .executes(DragonsLegacyCommands::reload)
                     )
                     .then(literal(placeholdersName)
-                        .requires(requirePerm(global, cmds.placeholders))
                         .executes(DragonsLegacyCommands::listPlaceholders)
                     )
                     // ── Admin subcommands ───────────────────────────────────
                     .then(literal("info")
-                        .requires(Permissions.require(Perms.DRAGONSLEGACY_INFO, PermissionLevel.OWNERS))
                         .executes(DragonsLegacyCommands::info)
                     )
                     .then(literal("setbearer")
-                        .requires(Permissions.require(Perms.DRAGONSLEGACY_SETBEARER, PermissionLevel.OWNERS))
                         .then(argument("player", EntityArgument.player())
                             .executes(DragonsLegacyCommands::setBearer)
                         )
                     )
                     .then(literal("clearability")
-                        .requires(Permissions.require(Perms.DRAGONSLEGACY_CLEARABILITY, PermissionLevel.OWNERS))
                         .executes(DragonsLegacyCommands::clearAbility)
                     )
                     .then(literal("resetcooldown")
-                        .requires(Permissions.require(Perms.DRAGONSLEGACY_RESETCOOLDOWN, PermissionLevel.OWNERS))
                         .executes(DragonsLegacyCommands::resetCooldown)
+                    )
+                    .then(literal("papitest")
+                        .executes(DragonsLegacyCommands::papiTest)
                     )
             );
 
-            // Register aliases as Brigadier redirects
+            // Register aliases as Brigadier redirects.
             var rootNode = dispatcher.getRoot().getChild(rootName);
             if (rootNode != null && cmds.aliases != null) {
                 for (String alias : cmds.aliases) {
@@ -158,50 +159,32 @@ public class DragonsLegacyCommands {
         });
     }
 
-    /**
-     * Returns a Brigadier predicate that enforces either a LuckPerms permission node
-     * or a vanilla op level, depending on the {@code permissions_api} flag in global.yaml.
-     *
-     * <p>When {@code permissions_api = true}: checks the configured LuckPerms permission node.
-     * If no permissions API is loaded, the check is open to all (default = true).
-     *
-     * <p>When {@code permissions_api = false}: maps the integer op level to a {@link PermissionLevel}
-     * and uses {@link Permissions#require(String, PermissionLevel)} with the op level as the fallback.
-     * The configured permission node is still passed so LuckPerms can override it explicitly if desired,
-     * but the op level acts as the authoritative default when no explicit node is set.
-     */
-    private static java.util.function.Predicate<CommandSourceStack> requirePerm(
-            dev.dragonslegacy.config.GlobalConfig global,
-            dev.dragonslegacy.config.GlobalConfig.CommandEntry entry) {
-        if (entry == null) return src -> true;
-        if (global.permissionsApi) {
-            String node = entry.permissionNode;
-            if (node == null || node.isBlank()) return src -> true;
-            return src -> Permissions.check(src, node);
-        } else {
-            // permissions_api = false → use vanilla op level.
-            // Map the integer op level to the nearest PermissionLevel and use Permissions.require
-            // (Fabric Permissions API falls back to the op level when no permissions mod is present).
-            PermissionLevel level = intToPermissionLevel(entry.opLevel);
-            String node = (entry.permissionNode != null && !entry.permissionNode.isBlank())
-                ? entry.permissionNode
-                : "dragonslegacy.oplevel." + entry.opLevel;
-            return Permissions.require(node, level);
-        }
-    }
+    // -------------------------------------------------------------------------
+    // Permission helper
+    // -------------------------------------------------------------------------
 
     /**
-     * Maps an integer operator level (0–4) to the corresponding {@link PermissionLevel} constant.
-     * Values outside the 0–4 range are clamped to the nearest valid level.
+     * Returns {@code true} when {@code source} has the given LuckPerms/Fabric permission
+     * node, or falls back to the vanilla operator level when no permission plugin is loaded.
+     *
+     * @param source    the command source to check
+     * @param node      the permission node (e.g. {@code "dragonslegacy.admin"})
+     * @param opLevel   vanilla op level used as fallback (0 = everyone, 3 = admins, 4 = owners)
      */
-    private static PermissionLevel intToPermissionLevel(int opLevel) {
-        return switch (Math.max(0, Math.min(4, opLevel))) {
+    private static boolean hasPerm(CommandSourceStack source, String node, int opLevel) {
+        PermissionLevel level = switch (Math.max(0, Math.min(4, opLevel))) {
             case 0  -> PermissionLevel.ALL;
             case 1  -> PermissionLevel.MODERATORS;
             case 2  -> PermissionLevel.GAMEMASTERS;
             case 3  -> PermissionLevel.ADMINS;
             default -> PermissionLevel.OWNERS;
         };
+        return Permissions.check(source, node, level);
+    }
+
+    /** Checks {@code dragonslegacy.admin} with op-level 3 fallback. */
+    private static boolean isAdmin(CommandSourceStack source) {
+        return hasPerm(source, PERM_ADMIN, 3);
     }
 
     // =========================================================================
@@ -212,10 +195,20 @@ public class DragonsLegacyCommands {
     // /dragonslegacy help
     // -------------------------------------------------------------------------
 
-    private static int help(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer player = context.getSource().getPlayerOrException();
+    private static int help(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        GlobalConfig.CommandEntry entry = commandEntry(e -> e.help);
+        if (!isCommandEnabled(source, entry)) return 0;
+
         MessagesConfig messages = DragonsLegacyMod.configManager.getMessages();
-        MessageOutputSystem.send(player, messages.getEntry("help"));
+        ServerPlayer player = tryGetPlayer(source);
+        if (player != null) {
+            MessageOutputSystem.send(player, messages.getEntry("help"));
+        } else {
+            // Console: send the raw help text directly
+            source.sendSuccess(() -> Component.literal(
+                "[Dragon's Legacy] help | bearer | hunger on/off | placeholders | reload | info | setbearer | clearability | resetcooldown | papitest"), false);
+        }
         return 1;
     }
 
@@ -223,21 +216,37 @@ public class DragonsLegacyCommands {
     // /dragonslegacy bearer
     // -------------------------------------------------------------------------
 
-    private static int bearer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer player = context.getSource().getPlayerOrException();
+    private static int bearer(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        GlobalConfig.CommandEntry entry = commandEntry(e -> e.bearer);
+        if (!isCommandEnabled(source, entry)) return 0;
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         MessagesConfig messages = DragonsLegacyMod.configManager.getMessages();
 
         if (legacy == null) {
-            player.sendSystemMessage(Component.literal("[Dragon's Legacy] System not initialised yet."));
+            source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
             return -1;
         }
 
         UUID bearerUUID = legacy.getEggTracker().getCurrentBearer();
-        if (bearerUUID == null) {
-            MessageOutputSystem.send(player, messages.getEntry("bearer_none"));
+        ServerPlayer player = tryGetPlayer(source);
+
+        if (player != null) {
+            if (bearerUUID == null) {
+                MessageOutputSystem.send(player, messages.getEntry("bearer_none"));
+            } else {
+                MessageOutputSystem.send(player, messages.getEntry("bearer_info"));
+            }
         } else {
-            MessageOutputSystem.send(player, messages.getEntry("bearer_info"));
+            // Console output
+            if (bearerUUID == null) {
+                source.sendSuccess(() -> Component.literal("[Dragon's Legacy] No one holds the Dragon Egg yet."), false);
+            } else {
+                ServerPlayer bearerPlayer = legacy.getEggTracker().getBearerPlayer(source.getServer());
+                String name = bearerPlayer != null ? bearerPlayer.getGameProfile().name() : bearerUUID.toString();
+                source.sendSuccess(() -> Component.literal("[Dragon's Legacy] Bearer: " + name), false);
+            }
         }
         return 1;
     }
@@ -250,10 +259,19 @@ public class DragonsLegacyCommands {
      * Activates Dragon's Hunger for the executing player.
      *
      * <p>Only the current bearer may run this command. Non-bearers receive the
-     * configurable {@code not_bearer} message.
+     * configurable {@code not_bearer} message.  Console callers are rejected.
      */
-    private static int hungerOn(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer player = context.getSource().getPlayerOrException();
+    private static int hungerOn(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        GlobalConfig.CommandEntry entry = commandEntry(e -> e.hunger);
+        if (!isCommandEnabled(source, entry)) return 0;
+
+        ServerPlayer player = tryGetPlayer(source);
+        if (player == null) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] /hunger must be run by a player."));
+            return -1;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         MessagesConfig messages = DragonsLegacyMod.configManager.getMessages();
 
@@ -270,11 +288,8 @@ public class DragonsLegacyCommands {
             return 0;
         }
 
-        // Activate the ability
         AbilityEngine engine = legacy.getAbilityEngine();
         engine.activateDragonHunger(player);
-
-        // Send activation message
         MessageOutputSystem.send(player, messages.getEntry("ability_activated"));
         return 1;
     }
@@ -287,10 +302,19 @@ public class DragonsLegacyCommands {
      * Deactivates Dragon's Hunger for the executing player.
      *
      * <p>Only the current bearer may run this command. Non-bearers receive the
-     * configurable {@code not_bearer} message.
+     * configurable {@code not_bearer} message.  Console callers are rejected.
      */
-    private static int hungerOff(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer player = context.getSource().getPlayerOrException();
+    private static int hungerOff(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        GlobalConfig.CommandEntry entry = commandEntry(e -> e.hunger);
+        if (!isCommandEnabled(source, entry)) return 0;
+
+        ServerPlayer player = tryGetPlayer(source);
+        if (player == null) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] /hunger must be run by a player."));
+            return -1;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         MessagesConfig messages = DragonsLegacyMod.configManager.getMessages();
 
@@ -307,11 +331,8 @@ public class DragonsLegacyCommands {
             return 0;
         }
 
-        // Deactivate the ability
         AbilityEngine engine = legacy.getAbilityEngine();
         engine.deactivateDragonHunger(player, "command");
-
-        // Send deactivation message
         MessageOutputSystem.send(player, messages.getEntry("ability_deactivated"));
         return 1;
     }
@@ -326,6 +347,11 @@ public class DragonsLegacyCommands {
 
     private static int info(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+        if (!isAdmin(source)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run this command."));
+            return 0;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
@@ -391,8 +417,13 @@ public class DragonsLegacyCommands {
 
     private static int setBearer(CommandContext<CommandSourceStack> context)
             throws CommandSyntaxException {
-        ServerPlayer target = EntityArgument.getPlayer(context, "player");
         CommandSourceStack source = context.getSource();
+        if (!isAdmin(source)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run this command."));
+            return 0;
+        }
+
+        ServerPlayer target = EntityArgument.getPlayer(context, "player");
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
@@ -427,6 +458,11 @@ public class DragonsLegacyCommands {
 
     private static int clearAbility(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+        if (!isAdmin(source)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run this command."));
+            return 0;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
@@ -466,6 +502,11 @@ public class DragonsLegacyCommands {
 
     private static int resetCooldown(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+        if (!isAdmin(source)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run this command."));
+            return 0;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
@@ -492,6 +533,11 @@ public class DragonsLegacyCommands {
 
     private static int reload(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+        if (!hasPerm(source, PERM_RELOAD, 3)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to reload configuration."));
+            return 0;
+        }
+
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
@@ -519,10 +565,11 @@ public class DragonsLegacyCommands {
 
     private static int listPlaceholders(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        ServerPlayer player;
-        try {
-            player = source.getPlayerOrException();
-        } catch (CommandSyntaxException e) {
+        GlobalConfig.CommandEntry entry = commandEntry(e -> e.placeholders);
+        if (!isCommandEnabled(source, entry)) return 0;
+
+        ServerPlayer player = tryGetPlayer(source);
+        if (player == null) {
             source.sendFailure(Component.literal("[Dragon's Legacy] This command must be run by a player."));
             return -1;
         }
@@ -530,7 +577,6 @@ public class DragonsLegacyCommands {
 
         MutableComponent msg = Component.empty()
             .append(Component.literal("[Dragon's Legacy] Placeholder values:\n").withStyle(ChatFormatting.GOLD))
-            // Static PAPI placeholders (player-context aware, always registered)
             .append(Component.literal("  %dragonslegacy:player%           = " + player.getGameProfile().name() + "\n"))
             .append(Component.literal("  %dragonslegacy:executor%         = " + player.getGameProfile().name() + "\n"))
             .append(Component.literal("  %dragonslegacy:executor_uuid%    = " + player.getUUID() + "\n"))
@@ -538,14 +584,13 @@ public class DragonsLegacyCommands {
             .append(Component.literal("  %dragonslegacy:global_prefix%    = "
                 + DragonsLegacyMod.configManager.getMessages().prefix + "\n"));
 
-        // Dynamic config-driven placeholders from placeholders.yaml
         dev.dragonslegacy.config.PlaceholdersConfig cfg = DragonsLegacyMod.configManager.getPlaceholders();
         if (cfg != null && cfg.placeholders != null && !cfg.placeholders.isEmpty()) {
             msg.append(Component.literal("  --- config-driven placeholders ---\n").withStyle(ChatFormatting.GRAY));
-            for (Map.Entry<String, dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef> entry
+            for (Map.Entry<String, dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef> e
                     : cfg.placeholders.entrySet()) {
-                String name = entry.getKey();
-                dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef def = entry.getValue();
+                String name = e.getKey();
+                dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef def = e.getValue();
                 if (def == null) continue;
                 String value = dev.dragonslegacy.PlaceholderEngine.resolve(def, player);
                 msg.append(Component.literal("  %dragonslegacy:" + name + "% = " + value + "\n"));
@@ -556,16 +601,106 @@ public class DragonsLegacyCommands {
         return 1;
     }
 
+    // -------------------------------------------------------------------------
+    // /dragonslegacy papitest
+    // -------------------------------------------------------------------------
+
+    /**
+     * Admin command: tests PlaceholderAPI integration by resolving all
+     * {@code %dragonslegacy:*%} placeholders for the executing source and
+     * displaying the results.
+     */
+    private static int papiTest(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!hasPerm(source, PERM_PAPITEST, 3)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run papitest."));
+            return 0;
+        }
+
+        ServerPlayer player = tryGetPlayer(source);
+
+        MutableComponent msg = Component.empty()
+            .append(Component.literal("[Dragon's Legacy] PAPI Test Results:\n").withStyle(ChatFormatting.GOLD));
+
+        if (player != null) {
+            // Static placeholders
+            msg.append(Component.literal("  %dragonslegacy:player%        = " + player.getGameProfile().name() + "\n"))
+               .append(Component.literal("  %dragonslegacy:bearer%        = " + dev.dragonslegacy.api.APIUtils.getBearer() + "\n"))
+               .append(Component.literal("  %dragonslegacy:global_prefix% = "
+                   + DragonsLegacyMod.configManager.getMessages().prefix + "\n"));
+        } else {
+            msg.append(Component.literal("  (running from console — player-specific placeholders unavailable)\n")
+                .withStyle(ChatFormatting.GRAY));
+            msg.append(Component.literal("  %dragonslegacy:bearer%        = " + dev.dragonslegacy.api.APIUtils.getBearer() + "\n"));
+        }
+
+        // Config-driven placeholders from placeholders.yaml
+        dev.dragonslegacy.config.PlaceholdersConfig cfg = DragonsLegacyMod.configManager.getPlaceholders();
+        if (cfg != null && cfg.placeholders != null && !cfg.placeholders.isEmpty()) {
+            msg.append(Component.literal("  --- config-driven (%dragonslegacy:*%) ---\n").withStyle(ChatFormatting.GRAY));
+            for (Map.Entry<String, dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef> e
+                    : cfg.placeholders.entrySet()) {
+                String name = e.getKey();
+                dev.dragonslegacy.config.PlaceholdersConfig.PlaceholderDef def = e.getValue();
+                if (def == null) continue;
+                String value = (player != null)
+                    ? dev.dragonslegacy.PlaceholderEngine.resolve(def, player)
+                    : "(requires player)";
+                msg.append(Component.literal("  %dragonslegacy:" + name + "% = " + value + "\n"));
+            }
+        } else {
+            msg.append(Component.literal("  (no config-driven placeholders registered)\n").withStyle(ChatFormatting.GRAY));
+        }
+
+        source.sendSuccess(() -> msg, false);
+        return 1;
+    }
+
     // =========================================================================
-    // Private helpers
+    // Utility helpers
     // =========================================================================
 
     /**
-     * Returns {@code value} if it is non-null and non-blank, otherwise returns
-     * {@code fallback}.
+     * Returns {@code value} if it is non-null and non-blank, otherwise returns {@code fallback}.
      */
     private static String nonEmpty(String value, String fallback) {
         return (value != null && !value.isBlank()) ? value : fallback;
+    }
+
+    /**
+     * Tries to get the player from {@code source}; returns {@code null} if the source is console.
+     */
+    private static ServerPlayer tryGetPlayer(CommandSourceStack source) {
+        try {
+            return source.getPlayerOrException();
+        } catch (CommandSyntaxException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the {@link GlobalConfig.CommandEntry} for the given accessor,
+     * or a default (enabled) entry if the config is absent.
+     */
+    private static GlobalConfig.CommandEntry commandEntry(
+            java.util.function.Function<GlobalConfig.CommandsSection, GlobalConfig.CommandEntry> accessor) {
+        GlobalConfig global = DragonsLegacyMod.configManager.getGlobal();
+        GlobalConfig.CommandsSection cmds = global != null ? global.commands : null;
+        if (cmds == null) return new GlobalConfig.CommandEntry(true);
+        GlobalConfig.CommandEntry entry = accessor.apply(cmds);
+        return entry != null ? entry : new GlobalConfig.CommandEntry(true);
+    }
+
+    /**
+     * Returns {@code false} and sends a "disabled" failure message if the command entry
+     * has {@code enabled = false}.
+     */
+    private static boolean isCommandEnabled(CommandSourceStack source, GlobalConfig.CommandEntry entry) {
+        if (entry != null && !entry.enabled) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] This command is currently disabled."));
+            return false;
+        }
+        return true;
     }
 
     /**

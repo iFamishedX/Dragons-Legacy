@@ -1,8 +1,16 @@
 config_version: 1
 
-# If true → use LuckPerms permission nodes.
-# If false → use vanilla operator levels.
-permissions_api: true
+# =============================================================================
+# Dragon's Legacy — Global Configuration
+# =============================================================================
+#
+# All commands are always registered with Brigadier.
+# Permission checks are enforced inside each command handler.
+#
+# Set enabled: false for any command to disable it for all users.
+# Admin commands (info, setbearer, clearability, resetcooldown, reload, papitest)
+# always require operator-level permission regardless of this toggle.
+# =============================================================================
 
 commands:
   root: "dragonslegacy"
@@ -10,21 +18,16 @@ commands:
     - "dl"
 
   help:
-    permission_node: "dragonslegacy.command.help"
-    op_level: 0
+    enabled: true
 
   bearer:
-    permission_node: "dragonslegacy.command.bearer"
-    op_level: 0
+    enabled: true
 
   hunger:
-    permission_node: "dragonslegacy.command.hunger"
-    op_level: 0
+    enabled: true
 
   reload:
-    permission_node: "dragonslegacy.command.reload"
-    op_level: 3
+    enabled: true
 
   placeholders:
-    permission_node: "dragonslegacy.command.placeholders"
-    op_level: 0
+    enabled: true

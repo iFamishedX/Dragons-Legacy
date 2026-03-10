@@ -22,6 +22,18 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Use {@link #getEntry(String)} for backward-compatible single-channel access,
  * or {@link #getChannels(String)} for full multi-channel dispatch.
+ *
+ * <h3>Channel structure (new format)</h3>
+ * <pre>{@code
+ * channels:
+ *   channel_name:
+ *     mode:     chat | actionbar | title | subtitle | bossbar
+ *     audience: everyone | bearer_only | everyone_except_bearer |
+ *               executor_only | everyone_except_executor
+ *     priority: integer (higher fires first, default 0)
+ *     delay:    ticks to wait before sending (default 0)
+ *     text:     "<MiniMessage text>"
+ * }</pre>
  */
 @ConfigSerializable
 public class MessagesConfig {
@@ -35,7 +47,7 @@ public class MessagesConfig {
     private static final Set<String> VALID_MODES =
         Set.of("chat", "actionbar", "bossbar", "title", "subtitle");
 
-    private static final Set<String> VALID_VISIBILITY =
+    private static final Set<String> VALID_AUDIENCE =
         Set.of("bearer_only", "everyone", "everyone_except_bearer", "executor_only", "everyone_except_executor");
 
     // Per-player cooldown tracking: messageKey -> playerUUID -> last-send tick
@@ -50,15 +62,43 @@ public class MessagesConfig {
     // =========================================================================
 
     /**
-     * A single channel within a message entry.
+     * A single named channel within a message entry.
      */
     @ConfigSerializable
     public static class ChannelEntry {
         public String mode = "chat";
-        public String visibility = "everyone";
+
+        /**
+         * Who receives this channel. Accepts {@code audience} (new) or {@code visibility}
+         * (legacy) — {@code audience} takes precedence when both are present.
+         */
+        public String audience = "everyone";
+
+        /**
+         * Legacy alias for {@code audience}. Kept for backward compatibility with
+         * configs that were generated before the rename.
+         */
+        public String visibility = "";
+
+        /** Higher-priority channels within the same message are sent first. */
+        public int priority = 0;
+
+        /** Ticks to wait before dispatching this channel (0 = immediate). */
+        public int delay = 0;
+
         public String text = "";
 
         private transient MessageString resolvedText;
+
+        /**
+         * Returns the effective audience string (lower-cased and trimmed), preferring
+         * {@code audience} over the legacy {@code visibility} field.
+         */
+        public String getAudience() {
+            if (audience != null && !audience.isBlank()) return audience.toLowerCase(java.util.Locale.ROOT).trim();
+            if (visibility != null && !visibility.isBlank()) return visibility.toLowerCase(java.util.Locale.ROOT).trim();
+            return "everyone";
+        }
 
         public MessageString getResolvedText() {
             if (resolvedText == null) {
@@ -70,13 +110,24 @@ public class MessagesConfig {
 
     /**
      * A full message entry loaded from messages.yaml.
+     *
+     * <p>Channels are now stored as a named map ({@code Map<String, ChannelEntry>})
+     * instead of a plain list, so each channel has a human-readable identifier.
+     * Iteration order follows insertion order (LinkedHashMap).
      */
     @ConfigSerializable
     public static class MessageConfig {
-        /** When {@code true}, this message will not be sent regardless of conditions. */
-        public boolean disabled = false;
+        /**
+         * When {@code false} (new format) or {@code disabled: true} (legacy format),
+         * this message will not be sent.
+         */
+        public boolean enabled = true;
 
-        public int order = 0;
+        /**
+         * Legacy field — kept for backward compatibility.
+         * If {@code true}, overrides {@code enabled} and suppresses the message.
+         */
+        public boolean disabled = false;
 
         @Setting("cooldown_ticks")
         public int cooldownTicks = 0;
@@ -86,7 +137,13 @@ public class MessagesConfig {
 
         public Map<String, Boolean> conditions = new LinkedHashMap<>();
 
-        public List<ChannelEntry> channels = new ArrayList<>();
+        /** Named channel map — keys are human-readable channel names. */
+        public Map<String, ChannelEntry> channels = new LinkedHashMap<>();
+
+        /** Returns {@code true} when the message should actually be sent. */
+        public boolean isEnabled() {
+            return enabled && !disabled;
+        }
     }
 
     /** Singleton disabled entry returned for any disabled or missing message. */
@@ -95,15 +152,15 @@ public class MessagesConfig {
     static {
         ChannelEntry empty = new ChannelEntry();
         empty.mode = "chat";
-        empty.visibility = "everyone";
+        empty.audience = "everyone";
         empty.text = "";
         DISABLED_ENTRY = new MessageEntry("chat", empty.getResolvedText(),
-            List.of(empty), 0, 0, Map.of(), 0, true);
+            List.of(empty), 0, 0, Map.of(), true);
     }
 
     /**
-     * A resolved message entry - the primary backward-compatible type.
-     * Points to the first channel's mode and text.
+     * A resolved message entry — the primary backward-compatible type.
+     * Points to the highest-priority channel's mode and text.
      */
     public static class MessageEntry {
         public final String output;
@@ -112,19 +169,17 @@ public class MessagesConfig {
         public final int cooldownTicks;
         public final int globalCooldownTicks;
         public final Map<String, Boolean> conditions;
-        public final int order;
         public final boolean disabled;
 
         public MessageEntry(String output, MessageString text, List<ChannelEntry> channels,
                             int cooldownTicks, int globalCooldownTicks,
-                            Map<String, Boolean> conditions, int order, boolean disabled) {
+                            Map<String, Boolean> conditions, boolean disabled) {
             this.output = output;
             this.text = text;
             this.channels = channels;
             this.cooldownTicks = cooldownTicks;
             this.globalCooldownTicks = globalCooldownTicks;
             this.conditions = conditions;
-            this.order = order;
             this.disabled = disabled;
         }
     }
@@ -148,8 +203,8 @@ public class MessagesConfig {
 
     /**
      * Returns a backward-compatible {@link MessageEntry} for the given key.
-     * Uses the first channel's mode and text as the primary output.
-     * Returns an empty entry (not sent) if the message is {@code disabled}.
+     * Uses the highest-priority channel's mode and text as the primary output.
+     * Returns a disabled entry if the message is disabled or missing.
      * Logs a warning for missing keys; never throws.
      */
     public MessageEntry getEntry(String key) {
@@ -158,51 +213,51 @@ public class MessagesConfig {
             DragonsLegacyMod.LOGGER.warn(
                 "[Dragon's Legacy] messages.yaml: key '{}' not found, using empty defaults.", key);
             cfg = new MessageConfig();
-            cfg.channels = new ArrayList<>();
             ChannelEntry fallback = new ChannelEntry();
             fallback.mode = "chat";
-            fallback.visibility = "everyone";
+            fallback.audience = "everyone";
             fallback.text = "";
-            cfg.channels.add(fallback);
+            cfg.channels = new LinkedHashMap<>();
+            cfg.channels.put("main", fallback);
         }
 
-        // If disabled, return the sentinel disabled entry that the output system will skip.
-        if (cfg.disabled) {
+        if (!cfg.isEnabled()) {
             return DISABLED_ENTRY;
         }
 
-        List<ChannelEntry> channels = cfg.channels != null ? cfg.channels : new ArrayList<>();
-        if (channels.isEmpty()) {
+        // Build a list of channels sorted by descending priority
+        List<ChannelEntry> sortedChannels = channelList(cfg);
+        if (sortedChannels.isEmpty()) {
             ChannelEntry fallback = new ChannelEntry();
             fallback.mode = "chat";
-            fallback.visibility = "everyone";
+            fallback.audience = "everyone";
             fallback.text = "";
-            channels = List.of(fallback);
+            sortedChannels = List.of(fallback);
         }
 
-        ChannelEntry primary = channels.get(0);
+        ChannelEntry primary = sortedChannels.get(0);
         String mode = validateMode(key, primary.mode);
-        validateVisibility(key, primary.visibility);
+        validateAudience(key, primary.getAudience());
 
         return new MessageEntry(
             mode,
             primary.getResolvedText(),
-            channels,
+            sortedChannels,
             cfg.cooldownTicks,
             cfg.globalCooldownTicks,
             cfg.conditions != null ? cfg.conditions : Map.of(),
-            cfg.order,
             false
         );
     }
 
     /**
-     * Returns all channels for the given key, or an empty list if not found.
+     * Returns all channels for the given key as an ordered list (sorted by descending priority),
+     * or an empty list if not found.
      */
     public List<ChannelEntry> getChannels(String key) {
         MessageConfig cfg = (messages != null) ? messages.get(key) : null;
         if (cfg == null || cfg.channels == null) return List.of();
-        return cfg.channels;
+        return channelList(cfg);
     }
 
     /**
@@ -236,8 +291,18 @@ public class MessagesConfig {
     }
 
     // =========================================================================
-    // Validation helpers
+    // Private helpers
     // =========================================================================
+
+    /**
+     * Returns the channels of {@code cfg} as a list sorted by descending priority.
+     */
+    private static List<ChannelEntry> channelList(MessageConfig cfg) {
+        if (cfg.channels == null || cfg.channels.isEmpty()) return new ArrayList<>();
+        List<ChannelEntry> list = new ArrayList<>(cfg.channels.values());
+        list.sort((a, b) -> Integer.compare(b.priority, a.priority));
+        return list;
+    }
 
     private String validateMode(String key, String mode) {
         if (mode == null) {
@@ -255,13 +320,13 @@ public class MessagesConfig {
         return normalized;
     }
 
-    private void validateVisibility(String key, String visibility) {
-        if (visibility == null) return;
-        String normalized = visibility.toLowerCase(Locale.ROOT).trim();
-        if (!VALID_VISIBILITY.contains(normalized)) {
+    private void validateAudience(String key, String audience) {
+        if (audience == null) return;
+        String normalized = audience.toLowerCase(Locale.ROOT).trim();
+        if (!VALID_AUDIENCE.contains(normalized)) {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] messages.yaml: key '{}' has unknown visibility '{}'. Allowed: {}.",
-                key, visibility, VALID_VISIBILITY);
+                "[Dragon's Legacy] messages.yaml: key '{}' has unknown audience '{}'. Allowed: {}.",
+                key, audience, VALID_AUDIENCE);
         }
     }
 
@@ -272,92 +337,100 @@ public class MessagesConfig {
     private static Map<String, MessageConfig> buildDefaultMessages() {
         Map<String, MessageConfig> map = new LinkedHashMap<>();
 
-        map.put("help", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("help", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% <gold><bold>Dragon's Legacy Commands</bold></gold>\n/dragonslegacy help\n/dragonslegacy bearer\n/dragonslegacy hunger on\n/dragonslegacy hunger off"))));
 
-        map.put("bearer_info", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("bearer_info", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% <yellow>The Dragon Egg is held by <gold>%dragonslegacy:bearer%</gold>.</yellow>"))));
 
-        map.put("bearer_none", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("bearer_none", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% <yellow>No one holds the Dragon Egg yet.</yellow>"))));
 
-        map.put("ability_activated", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE),
-            List.of(
-                channel("title", "bearer_only", "<#FF4500><bold>Dragon's Hunger!</bold>"),
-                channel("chat", "everyone", "%dragonslegacy:global_prefix% %dragonslegacy:player% activated Dragon's Hunger.")
-            )));
+        Map<String, ChannelEntry> activatedChannels = new LinkedHashMap<>();
+        activatedChannels.put("title",     ch("title", "bearer_only", 10, 0, "<#FF4500><bold>Dragon's Hunger!</bold>"));
+        activatedChannels.put("broadcast", ch("chat",  "everyone",     0, 0, "%dragonslegacy:global_prefix% %dragonslegacy:player% activated Dragon's Hunger."));
+        map.put("ability_activated", buildEntry(0, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE), activatedChannels));
 
-        map.put("ability_deactivated", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.FALSE),
-            List.of(channel("title", "bearer_only",
+        map.put("ability_deactivated", buildEntry(0, 0, Map.<String, Boolean>of("ability_active", Boolean.FALSE),
+            mapOf("title", ch("title", "bearer_only", 0, 0,
                 "<gray><italic>Dragon's Hunger fades...</italic></gray>"))));
 
-        map.put("ability_expired", buildEntry(0, 0, 0, Map.<String, Boolean>of("ability_active", Boolean.FALSE),
-            List.of(
-                channel("title", "bearer_only", "<gray><italic>Dragon's Hunger has ended.</italic></gray>"),
-                channel("chat", "everyone", "%dragonslegacy:global_prefix% Dragon's Hunger expired.")
-            )));
+        Map<String, ChannelEntry> expiredChannels = new LinkedHashMap<>();
+        expiredChannels.put("title",     ch("title", "bearer_only", 10, 0, "<gray><italic>Dragon's Hunger has ended.</italic></gray>"));
+        expiredChannels.put("broadcast", ch("chat",  "everyone",     0, 0, "%dragonslegacy:global_prefix% Dragon's Hunger expired."));
+        map.put("ability_expired", buildEntry(0, 0, Map.<String, Boolean>of("ability_active", Boolean.FALSE), expiredChannels));
 
-        map.put("ability_cooldown_started", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("ability_cooldown_started", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% Ability cooldown started."))));
 
-        map.put("ability_cooldown_ended", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("ability_cooldown_ended", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% Ability ready."))));
 
-        map.put("not_bearer", buildEntry(0, 20, 0, Map.<String, Boolean>of("executor_is_not_bearer", Boolean.TRUE),
-            List.of(channel("actionbar", "executor_only",
+        map.put("not_bearer", buildEntry(20, 0, Map.<String, Boolean>of("executor_is_not_bearer", Boolean.TRUE),
+            mapOf("main", ch("actionbar", "executor_only", 0, 0,
                 "<red>You are not the Dragon Egg bearer!</red>"))));
 
-        map.put("elytra_blocked", buildEntry(0, 20, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE),
-            List.of(channel("actionbar", "bearer_only",
+        map.put("elytra_blocked", buildEntry(20, 0, Map.<String, Boolean>of("ability_active", Boolean.TRUE),
+            mapOf("main", ch("actionbar", "bearer_only", 0, 0,
                 "<red>You cannot use an elytra while Dragon's Hunger is active!</red>"))));
 
-        map.put("egg_picked_up", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_held", Boolean.TRUE),
-            List.of(channel("chat", "everyone",
+        map.put("egg_picked_up", buildEntry(0, 0, Map.<String, Boolean>of("egg_held", Boolean.TRUE),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% %dragonslegacy:player% picked up the Dragon Egg."))));
 
-        map.put("egg_dropped", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_dropped", Boolean.TRUE),
-            List.of(channel("chat", "everyone",
+        map.put("egg_dropped", buildEntry(0, 0, Map.<String, Boolean>of("egg_dropped", Boolean.TRUE),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% The Dragon Egg was dropped."))));
 
-        map.put("egg_placed", buildEntry(0, 0, 0, Map.<String, Boolean>of("egg_placed", Boolean.TRUE),
-            List.of(channel("chat", "everyone",
+        map.put("egg_placed", buildEntry(0, 0, Map.<String, Boolean>of("egg_placed", Boolean.TRUE),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% Dragon Egg placed at %dragonslegacy:exact-xyz%."))));
 
-        map.put("egg_teleported", buildEntry(0, 0, 0, Map.of(),
-            List.of(channel("chat", "everyone",
+        map.put("egg_teleported", buildEntry(0, 0, Map.of(),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% Dragon Egg returned to spawn."))));
 
-        map.put("bearer_changed", buildEntry(0, 0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
-            List.of(channel("chat", "everyone",
+        map.put("bearer_changed", buildEntry(0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% New bearer: %dragonslegacy:bearer%."))));
 
-        map.put("bearer_cleared", buildEntry(0, 0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
-            List.of(channel("chat", "everyone",
+        map.put("bearer_cleared", buildEntry(0, 0, Map.<String, Boolean>of("bearer_changed", Boolean.TRUE),
+            mapOf("main", ch("chat", "everyone", 0, 0,
                 "%dragonslegacy:global_prefix% The Dragon Egg has no bearer."))));
 
         return map;
     }
 
-    private static MessageConfig buildEntry(int order, int cooldownTicks, int globalCooldownTicks,
-                                             Map<String, Boolean> conditions, List<ChannelEntry> channels) {
+    private static MessageConfig buildEntry(int cooldownTicks, int globalCooldownTicks,
+                                             Map<String, Boolean> conditions,
+                                             Map<String, ChannelEntry> channelMap) {
         MessageConfig cfg = new MessageConfig();
-        cfg.order = order;
+        cfg.enabled = true;
         cfg.cooldownTicks = cooldownTicks;
         cfg.globalCooldownTicks = globalCooldownTicks;
         cfg.conditions = new LinkedHashMap<>(conditions);
-        cfg.channels = new ArrayList<>(channels);
+        cfg.channels = channelMap;
         return cfg;
     }
 
-    private static ChannelEntry channel(String mode, String visibility, String text) {
+    /** Creates a single-channel named map. */
+    private static Map<String, ChannelEntry> mapOf(String name, ChannelEntry entry) {
+        Map<String, ChannelEntry> map = new LinkedHashMap<>();
+        map.put(name, entry);
+        return map;
+    }
+
+    private static ChannelEntry ch(String mode, String audience, int priority, int delay, String text) {
         ChannelEntry ch = new ChannelEntry();
         ch.mode = mode;
-        ch.visibility = visibility;
+        ch.audience = audience;
+        ch.priority = priority;
+        ch.delay = delay;
         ch.text = text;
         return ch;
     }

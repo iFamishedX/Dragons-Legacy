@@ -1,5 +1,18 @@
 config_version: 1
 
+# =============================================================================
+# Dragon's Legacy — Infusion Configuration
+# =============================================================================
+#
+# MiniMessage formatting IS supported in tooltip text.
+# PlaceholderAPI placeholders are NOT supported in tooltip text.
+#
+# Materials listed here can be combined with the Dragon Egg in an anvil
+# to apply an infusion color and tooltip.
+#
+# Namespace is auto-completed (minecraft: is prepended if missing).
+# =============================================================================
+
 infusion:
   enabled: true
 
@@ -7,40 +20,39 @@ infusion:
   default_color: "#FFFFFF"
 
   # Materials that can be merged with the Dragon Egg in an anvil.
-  # Namespace auto-completed (minecraft: if missing).
   materials:
     amethyst_shard:
       color: "#AA00FF"
-      tooltip: "Infused with Amethyst"
+      tooltip: "<light_purple>Infused with Amethyst</light_purple>"
 
     copper_ingot:
       color: "#B87333"
-      tooltip: "Infused with Copper"
+      tooltip: "<color:#B87333>Infused with Copper</color>"
 
     gold_ingot:
       color: "#FFD700"
-      tooltip: "Infused with Gold"
+      tooltip: "<gold>Infused with Gold</gold>"
 
     iron_ingot:
       color: "#D8D8D8"
-      tooltip: "Infused with Iron"
+      tooltip: "<gray>Infused with Iron</gray>"
 
     netherite_ingot:
       color: "#3C2A23"
-      tooltip: "Infused with Netherite"
+      tooltip: "<dark_gray>Infused with Netherite</dark_gray>"
 
     quartz:
       color: "#FFFFFF"
-      tooltip: "Infused with Quartz"
+      tooltip: "<white>Infused with Quartz</white>"
 
     redstone:
       color: "#FF0000"
-      tooltip: "Infused with Redstone"
+      tooltip: "<red>Infused with Redstone</red>"
 
     emerald:
       color: "#00FF55"
-      tooltip: "Infused with Emerald"
+      tooltip: "<green>Infused with Emerald</green>"
 
     diamond:
       color: "#00FFFF"
-      tooltip: "Infused with Diamond"
+      tooltip: "<aqua>Infused with Diamond</aqua>"

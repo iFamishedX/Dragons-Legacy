@@ -42,18 +42,18 @@ config_version: 1
 #   {bearer_max_health}       – bearer's maximum health
 #
 # ── Supported filters ────────────────────────────────────────────────────────
-#   upper(value)                       → uppercase
-#   lower(value)                       → lowercase
-#   capitalize(value)                  → First Letter Uppercase, rest lower
-#   round(value, precision)            → round to nearest multiple of precision
-#   abs(value)                         → absolute value
-#   format_number(value)               → locale-formatted number (1,234.56)
-#   default(value, fallback)           → fallback when value is blank or zero
-#   replace(value, target, replacement)→ string replacement
-#   if(condition, trueValue, falseValue)→ inline conditional
-#   color(value)                       → translate §-codes to & codes
-#   json(val1, val2, ...)              → JSON array ["val1","val2",...]
-#   distance_to_player()               → distance in blocks from egg to requesting player
+#   upper(value)                         → uppercase
+#   lower(value)                         → lowercase
+#   capitalize(value)                    → First Letter Uppercase, rest lower
+#   round(value, precision)              → round to nearest multiple of precision
+#   abs(value)                           → absolute value
+#   format_number(value)                 → locale-formatted number (1,234.56)
+#   default(value, fallback)             → fallback when value is blank or zero
+#   replace(value, target, replacement)  → string replacement
+#   if(condition, trueValue, falseValue) → inline conditional
+#   color(value)                         → translate §-codes to & codes
+#   json(val1, val2, ...)                → JSON array ["val1","val2",...]
+#   distance_to_player()                 → distance in blocks from egg to requesting player
 #
 # ── Visibility rules ─────────────────────────────────────────────────────────
 #   ignore_visibility: false (default)
