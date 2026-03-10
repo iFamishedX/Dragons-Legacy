@@ -1,16 +1,17 @@
 # Configuration
 
-Dragon's Legacy uses **seven YAML configuration files**, each focused on a specific area of the mod. All files live in:
+Dragon's Legacy uses **eight YAML configuration files**, each focused on a specific area of the mod. All files live in:
 
 ```
 config/dragonslegacy/
-├── global.yaml    — Permissions API toggle, command names & aliases, per-command permission nodes
-├── egg.yaml       — Egg tracking, visibility, and protections
-├── ability.yaml   — Dragon's Hunger ability settings
-├── passive.yaml   — Passive effects while holding the egg
-├── infusion.yaml  — Infusion color and anvil material settings
-├── messages.yaml  — All player-facing text
-└── logging.yaml   — Log output categories
+├── global.yaml        — Permissions API toggle, command names & aliases, per-command permission nodes
+├── egg.yaml           — Egg tracking, visibility, and protections
+├── ability.yaml       — Dragon's Hunger ability settings
+├── passive.yaml       — Passive effects while holding the egg
+├── infusion.yaml      — Infusion color and anvil material settings
+├── messages.yaml      — All player-facing text
+├── logging.yaml       — Log output categories
+└── placeholders.yaml  — Config-driven external PlaceholderAPI placeholders
 ```
 
 After editing any file, run `/dl reload` to apply changes without restarting the server. Fields marked **[Restart]** require a full server restart to take effect.
@@ -359,3 +360,43 @@ logging:
 | `errors` | Runtime errors and exceptions |
 
 Set `logging.enabled: false` to silence all Dragon's Legacy log output.
+
+---
+
+## placeholders.yaml
+
+Defines config-driven external PlaceholderAPI placeholders that are registered as `%dragonslegacy:name%`. Each entry maps a placeholder name to a definition containing visibility settings, conditions, and a format template. See [Placeholders](Placeholders.md) for the full syntax reference.
+
+```yaml
+config_version: 1
+
+placeholders:
+
+  pretty_location:
+    ignore_visibility: false
+    conditions:
+      - if: "{state} == 'HIDDEN'"
+        output: "Hidden"
+      - if: "{state} == 'PLAYER'"
+        output: "Carried by {bearer}"
+    format: "{round({x},50)}, {round({z},50)}"
+
+  exact-xz:
+    ignore_visibility: true
+    conditions: []
+    format: "{x}, {z}"
+
+  exact-xyz:
+    ignore_visibility: true
+    conditions: []
+    format: "{x}, {y}, {z}"
+```
+
+| Key | Type | Description |
+|---|---|---|
+| `ignore_visibility` | boolean | `true` = always expose exact values (admin/debug); `false` = apply visibility rules from `egg.yaml` |
+| `conditions` | list | Evaluated top-to-bottom; first match wins. Each entry has an `if:` expression and `output:` template |
+| `format` | string | Fallback template used when no condition matches |
+
+**Internal template variables** (`{x}`, `{state}`, `{bearer}`, etc.) are available in all `format:` and `output:` strings. They are resolved at render time and are never registered directly with PlaceholderAPI. See [Placeholders](Placeholders.md) for the full variable and filter reference.
+

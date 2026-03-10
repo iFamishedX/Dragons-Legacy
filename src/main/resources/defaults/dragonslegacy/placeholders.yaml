@@ -138,9 +138,41 @@ placeholders:
     format: "{state} | dur:{ability_duration} cd:{ability_cooldown}"
 
   # ---------------------------------------------------------------------------
+  # ability_duration — remaining Dragon's Hunger duration in ticks
+  # ---------------------------------------------------------------------------
+  ability_duration:
+    ignore_visibility: true
+    conditions: []
+    format: "{ability_duration}"
+
+  # ---------------------------------------------------------------------------
+  # ability_cooldown — remaining Dragon's Hunger cooldown in ticks
+  # ---------------------------------------------------------------------------
+  ability_cooldown:
+    ignore_visibility: true
+    conditions: []
+    format: "{ability_cooldown}"
+
+  # ---------------------------------------------------------------------------
   # server_info — online / max players
   # ---------------------------------------------------------------------------
   server_info:
     ignore_visibility: true
     conditions: []
     format: "{online}/{max_players}"
+
+  # ---------------------------------------------------------------------------
+  # online — current online player count
+  # ---------------------------------------------------------------------------
+  online:
+    ignore_visibility: true
+    conditions: []
+    format: "{online}"
+
+  # ---------------------------------------------------------------------------
+  # max_players — server maximum player count
+  # ---------------------------------------------------------------------------
+  max_players:
+    ignore_visibility: true
+    conditions: []
+    format: "{max_players}"

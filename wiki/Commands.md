@@ -96,7 +96,7 @@ Deactivates the Dragon's Hunger ability early.
 
 ### `/dl reload`
 
-Reloads all seven configuration files from disk without restarting the server.
+Reloads all eight configuration files from disk without restarting the server.
 
 **Usage:**
 ```
