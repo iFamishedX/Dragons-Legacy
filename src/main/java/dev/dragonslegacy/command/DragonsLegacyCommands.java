@@ -10,6 +10,8 @@ import dev.dragonslegacy.ability.AbilityTimers;
 import dev.dragonslegacy.config.GlobalConfig;
 import dev.dragonslegacy.config.MessagesConfig;
 import dev.dragonslegacy.egg.DragonsLegacy;
+import dev.dragonslegacy.egg.EggCore;
+import dev.dragonslegacy.egg.EggLocation;
 import dev.dragonslegacy.egg.EggState;
 import dev.dragonslegacy.egg.EggTracker;
 import dev.dragonslegacy.utils.Utils;
@@ -229,7 +231,8 @@ public class DragonsLegacyCommands {
             return -1;
         }
 
-        UUID bearerUUID = legacy.getEggTracker().getCurrentBearer();
+        EggCore eggCore = legacy.getEggCore();
+        UUID bearerUUID = eggCore.getBearerUuid().orElse(null);
         ServerPlayer player = tryGetPlayer(source);
 
         if (player != null) {
@@ -243,7 +246,7 @@ public class DragonsLegacyCommands {
             if (bearerUUID == null) {
                 source.sendSuccess(() -> Component.literal("[Dragon's Legacy] No one holds the Dragon Egg yet."), false);
             } else {
-                ServerPlayer bearerPlayer = legacy.getEggTracker().getBearerPlayer(source.getServer());
+                ServerPlayer bearerPlayer = eggCore.getBearerPlayer(source.getServer()).orElse(null);
                 String name = bearerPlayer != null ? bearerPlayer.getGameProfile().name() : bearerUUID.toString();
                 source.sendSuccess(() -> Component.literal("[Dragon's Legacy] Bearer: " + name), false);
             }
@@ -280,10 +283,11 @@ public class DragonsLegacyCommands {
             return -1;
         }
 
-        // Bearer-only enforcement
-        EggTracker tracker = legacy.getEggTracker();
-        UUID bearerUUID = tracker.getCurrentBearer();
-        if (bearerUUID == null || !player.getUUID().equals(bearerUUID)) {
+        // Bearer-only enforcement: must hold the egg and be the bearer
+        EggCore eggCore = legacy.getEggCore();
+        UUID bearerUUID = eggCore.getBearerUuid().orElse(null);
+        if (bearerUUID == null || !player.getUUID().equals(bearerUUID)
+                || eggCore.getEggState() != EggState.PLAYER) {
             MessageOutputSystem.send(player, messages.getEntry("not_bearer"));
             return 0;
         }
@@ -324,8 +328,8 @@ public class DragonsLegacyCommands {
         }
 
         // Bearer-only enforcement
-        EggTracker tracker = legacy.getEggTracker();
-        UUID bearerUUID = tracker.getCurrentBearer();
+        EggCore eggCore = legacy.getEggCore();
+        UUID bearerUUID = eggCore.getBearerUuid().orElse(null);
         if (bearerUUID == null || !player.getUUID().equals(bearerUUID)) {
             MessageOutputSystem.send(player, messages.getEntry("not_bearer"));
             return 0;
@@ -359,32 +363,29 @@ public class DragonsLegacyCommands {
         }
 
         MinecraftServer server = source.getServer();
-        EggTracker tracker = legacy.getEggTracker();
+        EggCore eggCore = legacy.getEggCore();
         AbilityEngine ability = legacy.getAbilityEngine();
 
-        UUID bearerUUID = tracker.getCurrentBearer();
-        String bearerName;
-        if (bearerUUID == null) {
-            bearerName = "none";
-        } else {
-            ServerPlayer bearerPlayer = tracker.getBearerPlayer(server);
-            bearerName = bearerPlayer != null
-                ? bearerPlayer.getGameProfile().name()
-                : bearerUUID.toString();
-        }
+        String bearerName = eggCore.getBearerPlayer(server)
+            .map(p -> p.getGameProfile().name())
+            .orElseGet(() -> eggCore.getBearerUuid()
+                .map(UUID::toString)
+                .orElse("none"));
 
-        EggState eggState = tracker.getCurrentState();
+        EggState eggState = eggCore.getEggState();
         String stateName = switch (eggState) {
-            case HELD_BY_PLAYER -> "held";
-            case PLACED_BLOCK   -> "placed";
-            case DROPPED_ITEM   -> "dropped";
-            case UNKNOWN        -> "unknown";
+            case PLAYER  -> "player";
+            case BLOCK   -> "block";
+            case WORLD   -> "world";
+            case UNKNOWN -> "unknown";
         };
 
-        BlockPos placed = tracker.getPlacedLocation();
-        String locationStr = (placed != null && eggState == EggState.PLACED_BLOCK)
-            ? "x=" + placed.getX() + " y=" + placed.getY() + " z=" + placed.getZ()
-            : "N/A";
+        String locationStr = eggCore.getEggLocation()
+            .map(loc -> loc.pos() != null
+                ? "x=" + loc.pos().getX() + " y=" + loc.pos().getY() + " z=" + loc.pos().getZ()
+                    + (loc.dimension() != null ? " [" + loc.dimension().identifier() + "]" : "")
+                : stateName)
+            .orElse("N/A");
 
         AbilityState abilityState = ability.getState();
         AbilityTimers timers = ability.getTimers();
@@ -431,16 +432,20 @@ public class DragonsLegacyCommands {
         }
 
         MinecraftServer server = source.getServer();
+        EggCore eggCore = legacy.getEggCore();
         EggTracker tracker = legacy.getEggTracker();
 
         removeEggFromCurrentLocation(server, tracker);
 
-        boolean added = target.getInventory().add(Items.DRAGON_EGG.getDefaultInstance());
+        // Create a tagged egg for the new bearer
+        ItemStack eggStack = Items.DRAGON_EGG.getDefaultInstance();
+        EggCore.tagEgg(eggStack);
+        boolean added = target.getInventory().add(eggStack);
         if (!added) {
-            target.drop(Items.DRAGON_EGG.getDefaultInstance(), false);
+            target.drop(eggStack, false);
         }
 
-        tracker.updateEggHeld(target);
+        eggCore.setBearer(target);
 
         String targetName = target.getGameProfile().name();
         source.sendSuccess(
@@ -709,14 +714,14 @@ public class DragonsLegacyCommands {
      */
     private static void removeEggFromCurrentLocation(MinecraftServer server, EggTracker tracker) {
         switch (tracker.getCurrentState()) {
-            case HELD_BY_PLAYER -> {
+            case PLAYER -> {
                 UUID bearerUUID = tracker.getCurrentBearer();
                 if (bearerUUID == null) break;
                 ServerPlayer bearer = server.getPlayerList().getPlayer(bearerUUID);
                 if (bearer == null) break;
                 removeEggFromInventory(bearer);
             }
-            case PLACED_BLOCK -> {
+            case BLOCK -> {
                 BlockPos pos = tracker.getPlacedLocation();
                 if (pos == null) break;
                 for (ServerLevel level : server.getAllLevels()) {
@@ -726,14 +731,14 @@ public class DragonsLegacyCommands {
                     }
                 }
             }
-            case DROPPED_ITEM -> {
+            case WORLD -> {
                 for (ServerLevel level : server.getAllLevels()) {
                     net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
                     net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
                         border.getMinX(), Utils.WORLD_Y_MIN, border.getMinZ(),
                         border.getMaxX(), Utils.WORLD_Y_MAX, border.getMaxZ());
                     for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
-                        if (item.getItem().is(Items.DRAGON_EGG)) {
+                        if (EggCore.isDragonEgg(item.getItem())) {
                             item.discard();
                             return;
                         }
@@ -745,18 +750,19 @@ public class DragonsLegacyCommands {
     }
 
     /**
-     * Removes one Dragon Egg stack from the player's inventory (main, armour, and offhand).
+     * Removes one canonical Dragon Egg stack from the player's inventory
+     * (main, armour, and offhand).
      */
     private static void removeEggFromInventory(ServerPlayer player) {
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (stack.is(Items.DRAGON_EGG)) {
+            if (EggCore.isDragonEgg(stack)) {
                 stack.shrink(stack.getCount());
                 return;
             }
         }
         for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
             ItemStack stack = player.getItemBySlot(slot);
-            if (stack.is(Items.DRAGON_EGG)) {
+            if (EggCore.isDragonEgg(stack)) {
                 player.setItemSlot(slot, ItemStack.EMPTY);
                 return;
             }

@@ -2,9 +2,9 @@ package dev.dragonslegacy.egg.event;
 
 import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.egg.EggAntiDupeEngine;
+import dev.dragonslegacy.egg.EggCore;
 import dev.dragonslegacy.egg.EggOfflineResetManager;
 import dev.dragonslegacy.egg.EggProtectionManager;
-import dev.dragonslegacy.egg.EggSpawnFallback;
 import dev.dragonslegacy.egg.EggTracker;
 import dev.dragonslegacy.ability.AbilityEngine;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -13,19 +13,18 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 
 /**
  * Registers Fabric API event hooks and delegates them to the appropriate
  * Dragon's Legacy manager classes.
  *
- * <p>All hooks are server-side only and complement (not replace) the hooks
- * already registered by {@link dev.dragonslegacy.Events}.
+ * <p>Egg identity is checked exclusively via {@link EggCore#isDragonEgg(ItemStack)}.
  */
 public class EggEventHandler {
 
-    /** Tick interval for periodic checks (every 100 ticks ≈ 5 seconds). */
+    /** Tick interval for egg heartbeat / periodic checks (every 100 ticks ≈ 5 seconds). */
     private static final int TICK_INTERVAL = 100;
 
     /** Longer interval for safety checks (every 6000 ticks = 5 minutes). */
@@ -35,8 +34,7 @@ public class EggEventHandler {
 
     /**
      * Registers all Fabric event hooks. Must be called once during mod
-     * initialisation after {@link DragonsLegacy#init(net.minecraft.server.MinecraftServer)}
-     * has been set up on the server.
+     * initialisation.
      */
     public static void register() {
         registerServerLifecycleHooks();
@@ -54,8 +52,8 @@ public class EggEventHandler {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             DragonsLegacy legacy = DragonsLegacy.getInstance();
             if (legacy == null) return;
-            // Initial scan and anti-dupe pass
-            legacy.getEggTracker().scanAndLocateEgg(server);
+            // Initial scan and anti-dupe pass via EggCore
+            legacy.getEggCore().tick(server);
             legacy.getEggAntiDupeEngine().scanAndResolveDuplicates(server);
             // Ensure the egg exists; if UNKNOWN after the scan, respawn at spawn
             legacy.getEggSpawnFallback().ensureEggExists(server);
@@ -82,6 +80,9 @@ public class EggEventHandler {
             legacy.getAbilityEngine().tick(server);
 
             if (tick % TICK_INTERVAL == 0) {
+                // Heartbeat: scan for egg via EggCore (includes fallback grace logic)
+                legacy.getEggCore().tick(server);
+
                 EggOfflineResetManager offlineReset = legacy.getEggOfflineResetManager();
                 offlineReset.tick(server);
 
@@ -134,16 +135,11 @@ public class EggEventHandler {
             if (!state.is(Blocks.DRAGON_EGG)) return;
             DragonsLegacy legacy = DragonsLegacy.getInstance();
             if (legacy == null) return;
-
-            EggTracker tracker = legacy.getEggTracker();
-            // After breaking, the egg becomes an item entity; let the entity-load event handle the state
-            // For now just scan to update state
-            net.minecraft.server.MinecraftServer srv = world.getServer();
-            if (srv != null) tracker.scanAndLocateEgg(srv);
+            // Notify EggCore that the block was broken; state will update on next tick scan
+            legacy.getEggCore().onEggBroken(pos, world);
         });
 
-        // Detect Ender Dragon death: mark the egg as initialized so the spawn
-        // fallback knows a legitimate egg now exists in the world.
+        // Detect Ender Dragon death: mark the egg as initialized
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(
             (entity, world) -> {
                 if (!(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon)) return;
@@ -154,18 +150,15 @@ public class EggEventHandler {
             }
         );
 
-        // Watch item entities that are dying (lava, void, despawn) and protect egg
+        // Watch item entities that are dying and protect canonical egg
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(
             (entity, world) -> {
                 if (!(entity instanceof ItemEntity item)) return;
-                if (!item.getItem().is(Items.DRAGON_EGG)) return;
-                if (!item.isRemoved()) return; // only care about actual removal
+                if (!EggCore.isDragonEgg(item.getItem())) return;
+                if (!item.isRemoved()) return;
 
                 DragonsLegacy legacy = DragonsLegacy.getInstance();
                 if (legacy == null) return;
-
-                // Only protect the item if it is the canonical egg
-                if (!legacy.getEggIdentityManager().isCanonicalEgg(item.getItem())) return;
 
                 EggProtectionManager protection = legacy.getEggProtectionManager();
                 protection.onEggItemEntityAboutToDie(item);
@@ -177,19 +170,7 @@ public class EggEventHandler {
     // Ability hooks
     // -------------------------------------------------------------------------
 
-    /**
-     * Registers hooks that drive the {@link AbilityEngine}:
-     * <ul>
-     *   <li>Bearer change → reset cooldown / deactivate old bearer</li>
-     * </ul>
-     *
-     * <p>Dragon's Hunger is now activated and deactivated exclusively via the
-     * {@code /dragonslegacy hunger on} and {@code /dragonslegacy hunger off} commands.
-     * The equipment-change hook that previously triggered activation by wearing a
-     * dragon head has been fully removed.
-     */
     private static void registerAbilityHooks() {
-        // Subscribe to bearer-changed events on the event bus (registered after SERVER_STARTED)
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             DragonsLegacy legacy = DragonsLegacy.getInstance();
             if (legacy == null) return;

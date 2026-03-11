@@ -528,10 +528,10 @@ public class PlaceholderEngine {
     /** Maps an {@link EggState} to the short state name used in placeholder conditions. */
     private static String eggStateToStateName(EggState state) {
         return switch (state) {
-            case HELD_BY_PLAYER -> "PLAYER";
-            case PLACED_BLOCK   -> "BLOCK";
-            case DROPPED_ITEM   -> "DROPPED";
-            case UNKNOWN        -> "UNKNOWN";
+            case PLAYER  -> "PLAYER";
+            case BLOCK   -> "BLOCK";
+            case WORLD   -> "WORLD";
+            case UNKNOWN -> "UNKNOWN";
         };
     }
 

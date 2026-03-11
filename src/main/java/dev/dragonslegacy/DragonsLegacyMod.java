@@ -3,6 +3,7 @@ package dev.dragonslegacy;
 import dev.dragonslegacy.command.DragonsLegacyCommands;
 import dev.dragonslegacy.config.ConfigManager;
 import dev.dragonslegacy.features.Actions;
+import dev.dragonslegacy.egg.EggComponents;
 import dev.dragonslegacy.egg.event.EggEventHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -44,6 +45,7 @@ public class DragonsLegacyMod implements ModInitializer {
 
         Placeholders.register();
         LootConditions.register();
+        EggComponents.register();
         configManager.init();
         Placeholders.registerDynamic();
         DragonsLegacyCommands.register();

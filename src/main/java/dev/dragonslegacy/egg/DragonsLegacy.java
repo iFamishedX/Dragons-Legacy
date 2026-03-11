@@ -35,6 +35,7 @@ public class DragonsLegacy {
     private final EggPersistentState     persistentState;
     private final EggIdentityManager     identityManager;
     private final EggTracker             eggTracker;
+    private final EggCore                eggCore;
     private final EggSpawnFallback       eggSpawnFallback;
     private final EggAntiDupeEngine      eggAntiDupeEngine;
     private final EggProtectionManager   eggProtectionManager;
@@ -53,7 +54,8 @@ public class DragonsLegacy {
         this.identityManager      = new EggIdentityManager();
         this.eggTracker           = new EggTracker(persistentState, eventBus);
         this.eggSpawnFallback     = new EggSpawnFallback(eventBus);
-        this.eggAntiDupeEngine    = new EggAntiDupeEngine(identityManager);
+        this.eggCore              = new EggCore(persistentState, eggTracker, eggSpawnFallback);
+        this.eggAntiDupeEngine    = new EggAntiDupeEngine();
         this.eggProtectionManager = new EggProtectionManager(eggSpawnFallback);
         this.eggOfflineResetManager = new EggOfflineResetManager(persistentState);
         this.abilityEngine        = new AbilityEngine();
@@ -82,17 +84,12 @@ public class DragonsLegacy {
 
         DragonsLegacy legacy = new DragonsLegacy(state);
 
-        // Sync identity manager with loaded state
-        if (state.getCanonicalEggId() != null) {
-            legacy.identityManager.setCanonicalEggId(state.getCanonicalEggId());
-        }
-
         INSTANCE = legacy;
 
-        // 4. Apply config values to subsystems before they are started
+        // Apply config values to subsystems before they are started
         legacy.applyConfig();
 
-        // 5. Start subsystems
+        // Start subsystems
         legacy.abilityEngine.init(server);
         legacy.announcementManager.init(server, legacy.eventBus);
         DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Subsystem initialised.");
@@ -147,10 +144,7 @@ public class DragonsLegacy {
 
     /**
      * Eagerly validates all effect and attribute entries in the loaded configs
-     * by resolving them against the Minecraft registries.  Any unknown or invalid
-     * entry is logged as a warning at this point so server owners see problems
-     * immediately on startup/reload rather than only when a player triggers an
-     * effect.
+     * by resolving them against the Minecraft registries.
      */
     private void validateConfigs() {
         AbilityConfig ability = DragonsLegacyMod.configManager.getAbility();
@@ -204,8 +198,11 @@ public class DragonsLegacy {
 
     public DragonEggEventBus      getEventBus()              { return eventBus; }
     public EggPersistentState     getPersistentState()        { return persistentState; }
+    /** @deprecated Use {@link #getEggCore()} instead. */
+    @Deprecated
     public EggIdentityManager     getEggIdentityManager()     { return identityManager; }
     public EggTracker             getEggTracker()             { return eggTracker; }
+    public EggCore                getEggCore()                { return eggCore; }
     public EggSpawnFallback       getEggSpawnFallback()       { return eggSpawnFallback; }
     public EggAntiDupeEngine      getEggAntiDupeEngine()      { return eggAntiDupeEngine; }
     public EggProtectionManager   getEggProtectionManager()   { return eggProtectionManager; }

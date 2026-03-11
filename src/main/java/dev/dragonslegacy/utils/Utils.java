@@ -156,7 +156,9 @@ public class Utils {
     }
 
     /**
-     * Spawns the given number of dragon eggs at the world spawn position
+     * Spawns the given number of dragon eggs at the world spawn position.
+     * Each spawned stack is tagged with the {@code dragonslegacy:egg} component
+     * so it is immediately recognised as the canonical egg.
      *
      * @param server The MinecraftServer instance
      * @param count  The number of dragon eggs to spawn
@@ -165,12 +167,14 @@ public class Utils {
     public static @Nullable ItemEntity spawnDragonEggAtSpawn(@NotNull MinecraftServer server, int count) {
         ServerLevel overworld = server.overworld();
         Vec3 spawnPos = overworld.getRespawnData().pos().getCenter();
+        ItemStack eggStack = Items.DRAGON_EGG.getDefaultInstance().copyWithCount(count);
+        dev.dragonslegacy.egg.EggCore.tagEgg(eggStack);
         ItemEntity itemCopy = new ItemEntity(
             overworld,
             spawnPos.x,
             spawnPos.y,
             spawnPos.z,
-            Items.DRAGON_EGG.getDefaultInstance().copyWithCount(count)
+            eggStack
         );
         if (overworld.addFreshEntity(itemCopy)) return itemCopy;
         return null;

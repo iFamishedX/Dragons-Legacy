@@ -16,20 +16,18 @@ import java.util.List;
  * Detects and removes duplicate canonical Dragon Eggs so only one copy
  * can ever exist in the world at any given time.
  *
+ * <p>Detection relies on {@link EggCore#isDragonEgg(ItemStack)} – the
+ * {@code dragonslegacy:egg} component is the sole identity signal.
+ *
  * <p>Priority (highest first):
  * <ol>
  *   <li>Held by a player</li>
- *   <li>Placed block</li>
  *   <li>Dropped item entity</li>
  * </ol>
  */
 public class EggAntiDupeEngine {
 
-    private final EggIdentityManager identityManager;
-
-    EggAntiDupeEngine(EggIdentityManager identityManager) {
-        this.identityManager = identityManager;
-    }
+    EggAntiDupeEngine() {}
 
     /**
      * Entry point: scans for duplicates and resolves them.
@@ -43,17 +41,17 @@ public class EggAntiDupeEngine {
      * keeps the highest-priority one and removes all others.
      */
     public void resolveDuplicateCanonicalEggs(MinecraftServer server) {
-        // Collect all canonical egg stacks held by players
-        List<ItemStack> playerStacks   = new ArrayList<>();
+        List<ItemStack>  playerStacks  = new ArrayList<>();
         List<ItemEntity> droppedItems  = new ArrayList<>();
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            // Main inventory slots
-            collectCanonicalEggs(player.getInventory().getNonEquipmentItems(), playerStacks);
-            // Armor and offhand slots
-            for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+            for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+                if (EggCore.isDragonEgg(stack)) playerStacks.add(stack);
+            }
+            for (net.minecraft.world.entity.EquipmentSlot slot
+                    : net.minecraft.world.entity.EquipmentSlot.values()) {
                 ItemStack stack = player.getItemBySlot(slot);
-                if (identityManager.isCanonicalEgg(stack)) playerStacks.add(stack);
+                if (EggCore.isDragonEgg(stack)) playerStacks.add(stack);
             }
         }
 
@@ -63,17 +61,17 @@ public class EggAntiDupeEngine {
                 border.getMinX(), Utils.WORLD_Y_MIN, border.getMinZ(),
                 border.getMaxX(), Utils.WORLD_Y_MAX, border.getMaxZ());
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
-                if (identityManager.isCanonicalEgg(item.getItem())) {
+                if (EggCore.isDragonEgg(item.getItem())) {
                     droppedItems.add(item);
                 }
             }
         }
 
         int totalCanonical = playerStacks.size() + droppedItems.size();
-        if (totalCanonical <= 1) return; // no duplicates
+        if (totalCanonical <= 1) return;
 
         DragonsLegacyMod.LOGGER.warn(
-            "[Dragon's Legacy] Found {} canonical egg(s) – resolving duplicates (keeping 1).",
+            "[Dragon's Legacy] Found {} canonical egg(s) – removing duplicates (keeping 1).",
             totalCanonical
         );
 
@@ -81,23 +79,11 @@ public class EggAntiDupeEngine {
         boolean kept = false;
         for (ItemStack stack : playerStacks) {
             if (!kept) { kept = true; continue; }
-            // Replace with air to effectively destroy the duplicate
             stack.shrink(stack.getCount());
         }
-
         for (ItemEntity item : droppedItems) {
             if (!kept) { kept = true; continue; }
             item.discard();
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private void collectCanonicalEggs(List<ItemStack> inventory, List<ItemStack> result) {
-        for (ItemStack stack : inventory) {
-            if (identityManager.isCanonicalEgg(stack)) result.add(stack);
         }
     }
 

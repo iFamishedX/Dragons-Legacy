@@ -7,6 +7,7 @@ import dev.dragonslegacy.egg.event.EggTeleportedToSpawnEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -14,8 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Ensures the canonical Dragon Egg is always recoverable by teleporting it
- * (or spawning a fresh one) to the world spawn point when it would otherwise
- * be lost.
+ * (or spawning a fresh tagged one) to the world spawn point when it would
+ * otherwise be lost.
  */
 public class EggSpawnFallback {
 
@@ -37,10 +38,10 @@ public class EggSpawnFallback {
     }
 
     /**
-     * Checks whether the canonical egg exists anywhere. If not, spawns one at the
-     * overworld spawn point.  Does nothing when {@link #isEnabled()} is {@code false}
-     * or when the egg has never been legitimately created in this world
-     * ({@code eggInitialized} is {@code false}).
+     * Checks whether the canonical egg exists anywhere. If not, spawns a tagged
+     * one at the overworld spawn point.  Does nothing when {@link #isEnabled()}
+     * is {@code false} or when the egg has never been legitimately created in
+     * this world ({@code eggInitialized} is {@code false}).
      */
     public void ensureEggExists(MinecraftServer server) {
         if (!enabled) return;
@@ -53,8 +54,7 @@ public class EggSpawnFallback {
     }
 
     /**
-     * If the canonical egg cannot be found anywhere, spawns {@code count}
-     * dragon eggs at the overworld spawn.
+     * Spawns {@code count} tagged dragon-egg items at the overworld spawn point.
      */
     public void ensureEggAtSpawn(MinecraftServer server, int count) {
         ItemEntity spawned = Utils.spawnDragonEggAtSpawn(server, count);
@@ -63,11 +63,11 @@ public class EggSpawnFallback {
             Vec3 pos = spawned.position();
             eventBus.publish(new EggTeleportedToSpawnEvent(pos));
             DragonsLegacyMod.LOGGER.info(
-                "[Dragon's Legacy] Spawned {} egg(s) at spawn ({}).", count, pos
+                "[Dragon's Legacy] Fallback: spawned {} tagged egg(s) at spawn ({}).", count, pos
             );
         } else {
             DragonsLegacyMod.LOGGER.warn(
-                "[Dragon's Legacy] Could not spawn egg at spawn – world may not be ready."
+                "[Dragon's Legacy] Fallback: could not spawn egg at spawn – world may not be ready."
             );
         }
     }
@@ -115,10 +115,10 @@ public class EggSpawnFallback {
         for (ServerLevel level : server.getAllLevels()) {
             net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
             net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
-                border.getMinX(), Utils.WORLD_Y_MIN, border.getMinZ(),
-                border.getMaxX(), Utils.WORLD_Y_MAX, border.getMaxZ());
+                border.getMinX(), dev.dragonslegacy.utils.Utils.WORLD_Y_MIN, border.getMinZ(),
+                border.getMaxX(), dev.dragonslegacy.utils.Utils.WORLD_Y_MAX, border.getMaxZ());
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
-                if (item.getItem().is(Items.DRAGON_EGG)) return item;
+                if (EggCore.isDragonEgg(item.getItem())) return item;
             }
         }
         return null;
@@ -128,7 +128,7 @@ public class EggSpawnFallback {
         DragonsLegacy legacy = DragonsLegacy.getInstance();
         if (legacy == null) return null;
         EggTracker tracker = legacy.getEggTracker();
-        if (tracker.getCurrentState() == EggState.PLACED_BLOCK) {
+        if (tracker.getCurrentState() == EggState.BLOCK) {
             return tracker.getPlacedLocation();
         }
         return null;

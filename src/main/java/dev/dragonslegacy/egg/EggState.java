@@ -5,11 +5,11 @@ package dev.dragonslegacy.egg;
  */
 public enum EggState {
     /** The egg is in a player's inventory. */
-    HELD_BY_PLAYER,
+    PLAYER,
     /** The egg is placed as a block in the world. */
-    PLACED_BLOCK,
-    /** The egg is a dropped item entity. */
-    DROPPED_ITEM,
+    BLOCK,
+    /** The egg is a dropped item entity in the world. */
+    WORLD,
     /** The egg's location is currently unknown. */
     UNKNOWN
 }
