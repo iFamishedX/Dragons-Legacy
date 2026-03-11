@@ -17,9 +17,14 @@ import java.util.UUID;
  * Central authority for the canonical Dragon Egg's state, bearer, and identity.
  *
  * <h3>Egg identity</h3>
- * The canonical egg is identified solely by the {@code dragonslegacy:egg} boolean
- * data component ({@link EggComponents#EGG}).  Use {@link #isDragonEgg(ItemStack)}
- * as the <em>single</em> authoritative detection check throughout the codebase.
+ * A stack is the <em>canonical</em> egg if and only if:
+ * <ol>
+ *   <li>{@code stack.getItem() == Items.DRAGON_EGG}</li>
+ *   <li>{@code dragonslegacy:egg == true}</li>
+ *   <li>{@code dragonslegacy:egg_id == canonicalEggId} (stored in world-persistent data)</li>
+ * </ol>
+ * Use {@link #isDragonEgg(ItemStack)} as the fast filter and
+ * {@link #isCanonicalEgg(ItemStack, UUID)} for the full canonical check.
  *
  * <h3>State machine</h3>
  * <ul>
@@ -34,6 +39,12 @@ import java.util.UUID;
  * If the egg remains {@link EggState#UNKNOWN} for longer than
  * {@value #FALLBACK_GRACE_TICKS} ticks a new tagged egg is spawned at the
  * world spawn point.
+ *
+ * <h3>UUID scrambling</h3>
+ * Every {@value #SCRAMBLE_INTERVAL_TICKS} ticks, when the canonical egg is
+ * positively located, its {@code dragonslegacy:egg_id} component is replaced
+ * with a fresh UUID and the stored canonical ID is updated atomically.
+ * This ensures any copies of the egg become counterfeits on the next scrub pass.
  */
 public class EggCore {
 
@@ -43,6 +54,12 @@ public class EggCore {
      */
     public static final int FALLBACK_GRACE_TICKS = 6_000;
 
+    /**
+     * Interval between UUID scrambles: 60 seconds (1 200 ticks).
+     * Configurable if needed; changing this only affects how quickly copies expire.
+     */
+    public static final int SCRAMBLE_INTERVAL_TICKS = 1_200;
+
     private final EggPersistentState persistentState;
     private final EggTracker         eggTracker;
     private final EggSpawnFallback   spawnFallback;
@@ -51,6 +68,8 @@ public class EggCore {
     private int unknownSinceTick = -1;
     /** Last EggState used for transition-logging. */
     private EggState lastLoggedState = null;
+    /** Server tick at which the last UUID scramble occurred. */
+    private int lastScrambleTick = -1;
 
     EggCore(EggPersistentState persistentState,
             EggTracker eggTracker,
@@ -65,14 +84,11 @@ public class EggCore {
     // =========================================================================
 
     /**
-     * The <strong>single authoritative</strong> check for whether a given
-     * {@link ItemStack} is the canonical Dragon Egg.
+     * Fast filter: returns {@code true} if the stack is a {@link Items#DRAGON_EGG}
+     * with {@code dragonslegacy:egg = true}.
      *
-     * @return {@code true} iff:
-     *         <ul>
-     *           <li>{@code stack.getItem() == Items.DRAGON_EGG}, AND</li>
-     *           <li>the {@code dragonslegacy:egg} component is {@code true}</li>
-     *         </ul>
+     * <p><strong>This does NOT verify the UUID.</strong>  Use
+     * {@link #isCanonicalEgg(ItemStack, UUID)} for the full canonical check.
      */
     public static boolean isDragonEgg(ItemStack stack) {
         if (stack.isEmpty() || !stack.is(Items.DRAGON_EGG)) return false;
@@ -80,14 +96,58 @@ public class EggCore {
     }
 
     /**
+     * Full canonical check: returns {@code true} iff the stack is a
+     * {@link Items#DRAGON_EGG} with both {@code dragonslegacy:egg = true}
+     * AND {@code dragonslegacy:egg_id == canonicalId}.
+     *
+     * @param stack       the stack to inspect
+     * @param canonicalId the world-persistent canonical UUID; if {@code null}
+     *                    this method always returns {@code false}
+     */
+    public static boolean isCanonicalEgg(ItemStack stack, @Nullable UUID canonicalId) {
+        if (canonicalId == null) return false;
+        if (!isDragonEgg(stack)) return false;
+        return canonicalId.equals(stack.get(EggComponents.EGG_ID));
+    }
+
+    /**
      * Tags the given Dragon Egg {@link ItemStack} with
-     * {@code dragonslegacy:egg = true}, marking it as the canonical egg.
+     * {@code dragonslegacy:egg = true} and {@code dragonslegacy:egg_id = canonicalId}.
+     *
+     * <p>If {@code canonicalId} is {@code null} a new UUID is generated and
+     * immediately persisted via {@link DragonsLegacy#getInstance()}.
      *
      * @param stack must be a {@link Items#DRAGON_EGG} stack
      */
     public static void tagEgg(ItemStack stack) {
         if (stack.isEmpty() || !stack.is(Items.DRAGON_EGG)) return;
         stack.set(EggComponents.EGG, true);
+
+        DragonsLegacy legacy = DragonsLegacy.getInstance();
+        UUID canonicalId = legacy != null ? legacy.getPersistentState().getCanonicalEggId() : null;
+        if (canonicalId == null) {
+            canonicalId = UUID.randomUUID();
+            if (legacy != null) {
+                legacy.getPersistentState().setCanonicalEggId(canonicalId);
+                DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Canonical Dragon Egg ID established: {}",
+                    canonicalId);
+            }
+        }
+        stack.set(EggComponents.EGG_ID, canonicalId);
+    }
+
+    /**
+     * Tags the given Dragon Egg {@link ItemStack} with
+     * {@code dragonslegacy:egg = true} and the provided {@code canonicalId}.
+     * Use this when the canonical ID is already known (e.g. fallback respawn).
+     *
+     * @param stack       must be a {@link Items#DRAGON_EGG} stack
+     * @param canonicalId the UUID to stamp on the item; must not be {@code null}
+     */
+    public static void tagEgg(ItemStack stack, UUID canonicalId) {
+        if (stack.isEmpty() || !stack.is(Items.DRAGON_EGG)) return;
+        stack.set(EggComponents.EGG, true);
+        stack.set(EggComponents.EGG_ID, canonicalId);
     }
 
     // =========================================================================
@@ -196,6 +256,7 @@ public class EggCore {
     /**
      * Heartbeat: re-scans for the egg in all possible locations, updates state,
      * and triggers the fallback spawn when the egg is missing long enough.
+     * Also schedules periodic UUID scrambling.
      *
      * <p>Should be called every {@code TICK_INTERVAL} ticks (e.g. every 100 ticks).
      */
@@ -223,9 +284,74 @@ public class EggCore {
         }
     }
 
+    /**
+     * Scrambles the canonical egg UUID when:
+     * <ul>
+     *   <li>the canonical egg is currently located (not {@link EggState#UNKNOWN})</li>
+     *   <li>enough time has elapsed since the last scramble</li>
+     * </ul>
+     * The method finds the canonical egg's {@link ItemStack}, atomically updates
+     * both the item component and the persistent canonical ID, then logs the
+     * event (to console/logs only – never exposed to players).
+     */
+    public void maybeScramble(MinecraftServer server) {
+        int currentTick = server.getTickCount();
+        if (lastScrambleTick >= 0 && currentTick - lastScrambleTick < SCRAMBLE_INTERVAL_TICKS) return;
+
+        EggState state = eggTracker.getCurrentState();
+        if (state == EggState.UNKNOWN) return;
+
+        UUID currentId = persistentState.getCanonicalEggId();
+        if (currentId == null) return;
+
+        // Locate the canonical item stack so we can update its component
+        ItemStack canonicalStack = findCanonicalStack(server, currentId);
+        if (canonicalStack == null || canonicalStack.isEmpty()) return;
+
+        UUID newId = UUID.randomUUID();
+        // Atomic: update item component and persistent ID together
+        canonicalStack.set(EggComponents.EGG_ID, newId);
+        persistentState.setCanonicalEggId(newId);
+        lastScrambleTick = currentTick;
+
+        logScramble(currentId, newId);
+    }
+
     // =========================================================================
     // Internal helpers
     // =========================================================================
+
+    /**
+     * Locates and returns the {@link ItemStack} that holds the canonical egg
+     * in player inventories or as an item entity.
+     * Returns {@code null} when the egg is placed as a block (no item stack)
+     * or cannot be found.
+     */
+    private @Nullable ItemStack findCanonicalStack(MinecraftServer server, UUID canonicalId) {
+        // Check online player inventories
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+                if (isCanonicalEgg(stack, canonicalId)) return stack;
+            }
+            for (net.minecraft.world.entity.EquipmentSlot slot
+                    : net.minecraft.world.entity.EquipmentSlot.values()) {
+                ItemStack stack = player.getItemBySlot(slot);
+                if (isCanonicalEgg(stack, canonicalId)) return stack;
+            }
+        }
+        // Check dropped item entities
+        for (net.minecraft.server.level.ServerLevel level : server.getAllLevels()) {
+            net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
+            net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(
+                border.getMinX(), dev.dragonslegacy.utils.Utils.WORLD_Y_MIN, border.getMinZ(),
+                border.getMaxX(), dev.dragonslegacy.utils.Utils.WORLD_Y_MAX, border.getMaxZ());
+            for (net.minecraft.world.entity.item.ItemEntity item
+                    : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box)) {
+                if (isCanonicalEgg(item.getItem(), canonicalId)) return item.getItem();
+            }
+        }
+        return null;
+    }
 
     private void triggerFallback(MinecraftServer server, int currentTick) {
         if (!persistentState.isEggInitialized()) return;
@@ -247,6 +373,16 @@ public class EggCore {
         var logging = DragonsLegacyMod.configManager.getLogging();
         if (logging != null && logging.logging.enabled && logging.logging.eggEvents.console) {
             DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] " + msg, args);
+        }
+    }
+
+    private void logScramble(UUID oldId, UUID newId) {
+        var logging = DragonsLegacyMod.configManager.getLogging();
+        if (logging != null && logging.logging.enabled) {
+            DragonsLegacyMod.LOGGER.debug(
+                "[Dragon's Legacy] Canonical egg UUID scrambled: {} → {}",
+                oldId, newId
+            );
         }
     }
 

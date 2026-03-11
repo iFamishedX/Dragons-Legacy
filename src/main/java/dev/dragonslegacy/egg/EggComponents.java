@@ -2,31 +2,38 @@ package dev.dragonslegacy.egg;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.core.Registry;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 
+import java.util.UUID;
+
 import static dev.dragonslegacy.DragonsLegacyMod.MOD_ID;
 
 /**
- * Holds the {@code dragonslegacy:egg} data-component type used to identify the
- * canonical Dragon Egg item stack.
+ * Holds the data-component types used to identify the canonical Dragon Egg item stack.
  *
- * <p>A Dragon Egg ItemStack is the authoritative egg if and only if this
- * component is present and set to {@code true}.  All detection code must go
- * through {@link EggCore#isDragonEgg(net.minecraft.world.item.ItemStack)}.
+ * <ul>
+ *   <li>{@link #EGG} – boolean flag marking participation in the Dragon's Legacy egg system</li>
+ *   <li>{@link #EGG_ID} – hidden UUID that matches the world-persistent canonical ID;
+ *       used by the scrub pass to detect counterfeits and is scrambled periodically</li>
+ * </ul>
+ *
+ * <p>The authoritative identity check is {@link EggCore#isDragonEgg(net.minecraft.world.item.ItemStack)};
+ * full canonical verification (including UUID check) goes through
+ * {@link EggCore#isCanonicalEgg(net.minecraft.world.item.ItemStack, UUID)}.
  */
 public final class EggComponents {
 
     /**
      * Boolean data component that marks a Dragon Egg {@link net.minecraft.world.item.ItemStack}
-     * as the canonical egg for Dragon's Legacy.
+     * as participating in the Dragon's Legacy egg system.
      *
      * <ul>
      *   <li>Namespace: {@code dragonslegacy}</li>
      *   <li>Key: {@code egg}</li>
-     *   <li>Type: boolean</li>
-     *   <li>Default: {@code false} (absent)</li>
+     *   <li>Type: boolean – {@code true} only on the canonical egg</li>
      * </ul>
      */
     public static final DataComponentType<Boolean> EGG = Registry.register(
@@ -38,11 +45,31 @@ public final class EggComponents {
     );
 
     /**
-     * Call once during mod initialisation to ensure the component type is
+     * Hidden UUID component that carries the canonical egg's identity token.
+     * The stored value must always match {@link EggPersistentState#getCanonicalEggId()}.
+     * It is periodically scrambled to invalidate any copies.
+     *
+     * <ul>
+     *   <li>Namespace: {@code dragonslegacy}</li>
+     *   <li>Key: {@code egg_id}</li>
+     *   <li>Type: UUID (persisted as int-array)</li>
+     *   <li>Only present on the canonical egg; absent on all counterfeits</li>
+     * </ul>
+     */
+    public static final DataComponentType<UUID> EGG_ID = Registry.register(
+        BuiltInRegistries.DATA_COMPONENT_TYPE,
+        Identifier.fromNamespaceAndPath(MOD_ID, "egg_id"),
+        DataComponentType.<UUID>builder()
+            .persistent(UUIDUtil.CODEC)
+            .build()
+    );
+
+    /**
+     * Call once during mod initialisation to ensure the component types are
      * registered (triggers static initialisation of this class).
      */
     public static void register() {
-        // static initialiser above performs the registration
+        // static initialisers above perform the registrations
     }
 
     private EggComponents() {}
