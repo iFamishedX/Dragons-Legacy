@@ -188,6 +188,7 @@ public class EggTracker {
         }
 
         // 2 – dropped item entities in all loaded levels
+        UUID canonicalId = persistentState.getCanonicalEggId();
         for (ServerLevel level : server.getAllLevels()) {
             net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
             net.minecraft.world.phys.AABB borderBox = new net.minecraft.world.phys.AABB(
@@ -195,7 +196,7 @@ public class EggTracker {
                 border.getMaxX(), dev.dragonslegacy.utils.Utils.WORLD_Y_MAX, border.getMaxZ());
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, borderBox)) {
                 ItemStack stack = item.getItem();
-                if (EggCore.isDragonEgg(stack)) {
+                if (isTrackerCanonical(stack, canonicalId)) {
                     updateEggDropped(item);
                     return;
                 }
@@ -231,22 +232,47 @@ public class EggTracker {
 
     /**
      * Searches the player's main inventory, equipment, and container-cursor for
-     * a tagged Dragon Egg.
+     * a tagged Dragon Egg with the correct canonical UUID.
      *
-     * @return the tagged stack if found, {@code null} otherwise
+     * <p>Accepts eggs with {@code dragonslegacy:egg = true} but no {@code egg_id}
+     * only when no canonical ID is stored yet, or when the canonical ID matches
+     * the stored value (migration case: egg was tagged before UUID system).
+     *
+     * @return the canonical stack if found, {@code null} otherwise
      */
     private @Nullable ItemStack findTaggedEggInPlayer(ServerPlayer player) {
+        UUID canonicalId = persistentState.getCanonicalEggId();
         // Main inventory
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (EggCore.isDragonEgg(stack)) return stack;
+            if (isTrackerCanonical(stack, canonicalId)) return stack;
         }
         // Equipment (armour + offhand)
         for (net.minecraft.world.entity.EquipmentSlot slot
                 : net.minecraft.world.entity.EquipmentSlot.values()) {
             ItemStack stack = player.getItemBySlot(slot);
-            if (EggCore.isDragonEgg(stack)) return stack;
+            if (isTrackerCanonical(stack, canonicalId)) return stack;
         }
         return null;
+    }
+
+    /**
+     * Returns {@code true} when the stack should be treated as the canonical egg
+     * by the tracker.  This is true when:
+     * <ul>
+     *   <li>The stack fully matches the canonical UUID ({@link EggCore#isCanonicalEgg})</li>
+     *   <li>OR the stack has {@code dragonslegacy:egg = true} but no UUID yet
+     *       (legacy / migration: the scrub pass will assign the UUID)</li>
+     * </ul>
+     */
+    private static boolean isTrackerCanonical(ItemStack stack, @Nullable UUID canonicalId) {
+        if (!EggCore.isDragonEgg(stack)) return false;
+        UUID stackId = stack.get(EggComponents.EGG_ID);
+        if (stackId == null) {
+            // Legacy / migration: egg tagged but UUID not yet set – accept it so
+            // the scrub pass can promote/migrate it rather than losing track.
+            return true;
+        }
+        return stackId.equals(canonicalId);
     }
 
     /**

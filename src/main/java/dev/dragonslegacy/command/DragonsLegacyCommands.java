@@ -12,6 +12,7 @@ import dev.dragonslegacy.config.MessagesConfig;
 import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.egg.EggCore;
 import dev.dragonslegacy.egg.EggLocation;
+import dev.dragonslegacy.egg.EggPersistentState;
 import dev.dragonslegacy.egg.EggState;
 import dev.dragonslegacy.egg.EggTracker;
 import dev.dragonslegacy.utils.Utils;
@@ -133,6 +134,11 @@ public class DragonsLegacyCommands {
                     .then(literal("info")
                         .executes(DragonsLegacyCommands::info)
                     )
+                    .then(literal("debug")
+                        .then(literal("egg")
+                            .executes(DragonsLegacyCommands::debugEgg)
+                        )
+                    )
                     .then(literal("setbearer")
                         .then(argument("player", EntityArgument.player())
                             .executes(DragonsLegacyCommands::setBearer)
@@ -209,7 +215,7 @@ public class DragonsLegacyCommands {
         } else {
             // Console: send the raw help text directly
             source.sendSuccess(() -> Component.literal(
-                "[Dragon's Legacy] help | bearer | hunger on/off | placeholders | reload | info | setbearer | clearability | resetcooldown | papitest"), false);
+                "[Dragon's Legacy] help | bearer | hunger on/off | placeholders | reload | info | debug egg | setbearer | clearability | resetcooldown | papitest"), false);
         }
         return 1;
     }
@@ -418,6 +424,40 @@ public class DragonsLegacyCommands {
             msg.append(field("Cooldown remaining", timers.getCooldownRemaining() + " ticks"));
         }
 
+        source.sendSuccess(() -> msg, false);
+        return 1;
+    }
+
+    // -------------------------------------------------------------------------
+    // /dragonslegacy debug egg  (console/admin only – shows internal canonical ID)
+    // -------------------------------------------------------------------------
+
+    private static int debugEgg(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!isAdmin(source)) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] You don't have permission to run this command."));
+            return 0;
+        }
+
+        DragonsLegacy legacy = DragonsLegacy.getInstance();
+        if (legacy == null) {
+            source.sendFailure(Component.literal("[Dragon's Legacy] System not initialised yet."));
+            return -1;
+        }
+
+        EggPersistentState ps = legacy.getPersistentState();
+        java.util.UUID canonicalId = ps.getCanonicalEggId();
+        String idStr = canonicalId != null ? canonicalId.toString() : "none";
+        EggState eggState = legacy.getEggCore().getEggState();
+        boolean initialized = ps.isEggInitialized();
+
+        MutableComponent msg = Component.empty()
+            .append(header("Dragon's Legacy – Egg Debug"))
+            .append(field("Canonical ID", idStr))
+            .append(field("State", eggState.name()))
+            .append(field("Initialized", String.valueOf(initialized)));
+
+        // Sends to the command source (admin/console only – not broadcast to all players)
         source.sendSuccess(() -> msg, false);
         return 1;
     }
