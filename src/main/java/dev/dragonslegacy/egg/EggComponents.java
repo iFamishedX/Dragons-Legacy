@@ -1,6 +1,8 @@
 package dev.dragonslegacy.egg;
 
 import com.mojang.serialization.Codec;
+import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
+import net.fabricmc.fabric.api.event.registry.RegistryAttributeHolder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
@@ -66,10 +68,20 @@ public final class EggComponents {
 
     /**
      * Call once during mod initialisation to ensure the component types are
-     * registered (triggers static initialisation of this class).
+     * registered (triggers static initialisation of this class) and marks the
+     * {@code DATA_COMPONENT_TYPE} registry as optional so that vanilla clients
+     * are not disconnected during Fabric's registry-sync handshake.
      */
     public static void register() {
         // static initialisers above perform the registrations
+
+        // Mark DATA_COMPONENT_TYPE as optional in Fabric's registry sync so
+        // that vanilla (un-modded) clients are not disconnected when they
+        // connect to this server.  The component values themselves are already
+        // non-synced (no networkSynchronized codec), so vanilla clients never
+        // receive the custom component data in item-stack packets.
+        RegistryAttributeHolder.get(BuiltInRegistries.DATA_COMPONENT_TYPE)
+                .addAttribute(RegistryAttribute.OPTIONAL);
     }
 
     private EggComponents() {}
