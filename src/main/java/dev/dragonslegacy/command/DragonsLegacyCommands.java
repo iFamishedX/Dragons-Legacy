@@ -369,22 +369,32 @@ public class DragonsLegacyCommands {
         String bearerName = eggCore.getBearerPlayer(server)
             .map(p -> p.getGameProfile().name())
             .orElseGet(() -> eggCore.getBearerUuid()
-                .map(UUID::toString)
+                .map(uuid -> {
+                    if (eggCore.getEggState() == EggState.OFFLINE_PLAYER) {
+                        return EggCore.resolveBearerName(uuid, server) + " (offline)";
+                    }
+                    return uuid.toString();
+                })
                 .orElse("none"));
 
         EggState eggState = eggCore.getEggState();
         String stateName = switch (eggState) {
-            case PLAYER  -> "player";
-            case BLOCK   -> "block";
-            case WORLD   -> "world";
-            case UNKNOWN -> "unknown";
+            case PLAYER         -> "player";
+            case OFFLINE_PLAYER -> "offline_player";
+            case BLOCK          -> "block";
+            case WORLD          -> "world";
+            case UNKNOWN        -> "unknown";
         };
 
         String locationStr = eggCore.getEggLocation()
-            .map(loc -> loc.pos() != null
-                ? "x=" + loc.pos().getX() + " y=" + loc.pos().getY() + " z=" + loc.pos().getZ()
-                    + (loc.dimension() != null ? " [" + loc.dimension().identifier() + "]" : "")
-                : stateName)
+            .map(loc -> {
+                if (loc.state() == EggState.OFFLINE_PLAYER) return "In offline player inventory";
+                if (loc.state() == EggState.PLAYER) return "In bearer inventory";
+                return loc.pos() != null
+                    ? "x=" + loc.pos().getX() + " y=" + loc.pos().getY() + " z=" + loc.pos().getZ()
+                        + (loc.dimension() != null ? " [" + loc.dimension().identifier() + "]" : "")
+                    : "N/A";
+            })
             .orElse("N/A");
 
         AbilityState abilityState = ability.getState();

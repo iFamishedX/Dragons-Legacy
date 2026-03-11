@@ -24,9 +24,11 @@ public class EggOfflineResetManager {
     private long bearerLastOnlineMs = -1L;
 
     private final EggPersistentState persistentState;
+    private final EggTracker         eggTracker;
 
-    EggOfflineResetManager(EggPersistentState persistentState) {
+    EggOfflineResetManager(EggPersistentState persistentState, EggTracker eggTracker) {
         this.persistentState = persistentState;
+        this.eggTracker      = eggTracker;
     }
 
     // -------------------------------------------------------------------------
@@ -105,6 +107,7 @@ public class EggOfflineResetManager {
 
     private void clearBearer() {
         persistentState.setBearerUUID(null);
+        eggTracker.clearBearer();
         bearerLastOnlineMs = -1L;
         DragonsLegacyMod.LOGGER.info("[Dragon's Legacy] Bearer cleared due to prolonged absence.");
     }

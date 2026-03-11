@@ -159,8 +159,7 @@ public class PlaceholderEngine {
             UUID bearerUUID = tracker.getCurrentBearer();
             bearerUuidStr = bearerUUID.toString();
             if (server != null) {
-                ServerPlayer bearerPlayer = server.getPlayerList().getPlayer(bearerUUID);
-                bearerName = bearerPlayer != null ? bearerPlayer.getGameProfile().name() : bearerUUID.toString();
+                bearerName = dev.dragonslegacy.egg.EggCore.resolveBearerName(bearerUUID, server);
             } else {
                 bearerName = bearerUUID.toString();
             }
@@ -528,13 +527,14 @@ public class PlaceholderEngine {
     /** Maps an {@link EggState} to the short state name used in placeholder conditions. */
     private static String eggStateToStateName(EggState state) {
         return switch (state) {
-            case PLAYER  -> "PLAYER";
-            case BLOCK   -> "BLOCK";
+            case PLAYER         -> "PLAYER";
+            case OFFLINE_PLAYER -> "OFFLINE_PLAYER";
+            case BLOCK          -> "BLOCK";
             // NOTE: previously returned "DROPPED" (from DROPPED_ITEM enum value).
             // Changed to "WORLD" to match the renamed EggState.WORLD enum value.
             // Update any placeholder conditions that previously checked for "DROPPED".
-            case WORLD   -> "WORLD";
-            case UNKNOWN -> "UNKNOWN";
+            case WORLD          -> "WORLD";
+            case UNKNOWN        -> "UNKNOWN";
         };
     }
 

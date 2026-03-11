@@ -121,6 +121,9 @@ public class EggEventHandler {
             // Remove passive effects when the bearer disconnects
             if (player.getUUID().equals(legacy.getEggTracker().getCurrentBearer())) {
                 legacy.getPassiveEffectsEngine().removeFromPlayer(player);
+                // Transition to OFFLINE_PLAYER so the heartbeat does not treat the
+                // egg as missing and fire false "egg dropped" / fallback spawn logic.
+                legacy.getEggTracker().updateEggOfflinePlayer(player.getUUID());
             }
         });
     }

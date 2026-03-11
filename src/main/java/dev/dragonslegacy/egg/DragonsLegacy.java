@@ -57,7 +57,7 @@ public class DragonsLegacy {
         this.eggCore              = new EggCore(persistentState, eggTracker, eggSpawnFallback);
         this.eggAntiDupeEngine    = new EggAntiDupeEngine();
         this.eggProtectionManager = new EggProtectionManager(eggSpawnFallback);
-        this.eggOfflineResetManager = new EggOfflineResetManager(persistentState);
+        this.eggOfflineResetManager = new EggOfflineResetManager(persistentState, eggTracker);
         this.abilityEngine        = new AbilityEngine();
         this.passiveEffectsEngine = new PassiveEffectsEngine();
         this.announcementManager  = new AnnouncementManager();
