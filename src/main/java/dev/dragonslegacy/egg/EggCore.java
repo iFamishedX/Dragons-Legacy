@@ -23,10 +23,11 @@ import java.util.UUID;
  *
  * <h3>State machine</h3>
  * <ul>
- *   <li>{@link EggState#PLAYER}  – egg is in a player's inventory</li>
- *   <li>{@link EggState#WORLD}   – egg is a dropped item entity</li>
- *   <li>{@link EggState#BLOCK}   – egg is placed as a block</li>
- *   <li>{@link EggState#UNKNOWN} – egg cannot be located</li>
+ *   <li>{@link EggState#PLAYER}        – egg is in an online player's inventory</li>
+ *   <li>{@link EggState#OFFLINE_PLAYER} – egg is in an offline player's inventory</li>
+ *   <li>{@link EggState#WORLD}          – egg is a dropped item entity</li>
+ *   <li>{@link EggState#BLOCK}          – egg is placed as a block</li>
+ *   <li>{@link EggState#UNKNOWN}        – egg cannot be located</li>
  * </ul>
  *
  * <h3>Fallback spawn</h3>
@@ -136,6 +137,24 @@ public class EggCore {
         eggTracker.clearBearer();
     }
 
+    /**
+     * Resolves the display name for a bearer UUID, including offline players.
+     * Looks up the online player first; if offline, queries the server's
+     * name-to-id cache.  Falls back to the UUID string if the name cannot be
+     * resolved.
+     *
+     * @param bearerUuid the UUID to resolve
+     * @param server     the current {@link MinecraftServer}
+     * @return a human-readable player name, or the UUID string as a fallback
+     */
+    public static String resolveBearerName(UUID bearerUuid, MinecraftServer server) {
+        ServerPlayer online = server.getPlayerList().getPlayer(bearerUuid);
+        if (online != null) return online.getGameProfile().name();
+        net.minecraft.server.players.NameAndId nameAndId =
+            server.services().nameToIdCache().get(bearerUuid).orElse(null);
+        return nameAndId != null ? nameAndId.name() : bearerUuid.toString();
+    }
+
     // =========================================================================
     // Pickup / placement hooks
     // =========================================================================
@@ -210,6 +229,12 @@ public class EggCore {
 
     private void triggerFallback(MinecraftServer server, int currentTick) {
         if (!persistentState.isEggInitialized()) return;
+        // Never trigger fallback when the egg is safely held by an offline bearer
+        if (eggTracker.getCurrentBearer() != null &&
+                server.getPlayerList().getPlayer(eggTracker.getCurrentBearer()) == null) {
+            logEggEvent("Skipping fallback spawn: bearer is offline.");
+            return;
+        }
         DragonsLegacyMod.LOGGER.warn(
             "[Dragon's Legacy] Egg has been UNKNOWN for {} ticks – triggering fallback spawn.",
             currentTick - unknownSinceTick
@@ -239,6 +264,12 @@ public class EggCore {
                 @Nullable ServerPlayer bearer = eggTracker.getBearerPlayer(server);
                 DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] Egg state: PLAYER (bearer={})",
                     bearer != null ? bearer.getGameProfile().name() : "unknown");
+            }
+            case OFFLINE_PLAYER -> {
+                @Nullable UUID offlineUuid = eggTracker.getCurrentBearer();
+                DragonsLegacyMod.LOGGER.debug(
+                    "[Dragon's Legacy] Egg state: OFFLINE_PLAYER (bearer={}) – egg is safely held by offline player",
+                    offlineUuid != null ? offlineUuid : "unknown");
             }
             case WORLD -> {
                 @Nullable BlockPos worldPos = eggTracker.getPlacedLocation();

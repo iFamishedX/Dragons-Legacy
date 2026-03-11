@@ -24,7 +24,7 @@ config_version: 1
 # ── Internal placeholders ────────────────────────────────────────────────────
 #   {x}  {y}  {z}            – exact egg block coordinates
 #   {dimension}               – resource-key of the egg's current dimension
-#   {state}                   – synthesised state: PLAYER / BLOCK / DROPPED / UNKNOWN / HIDDEN
+#   {state}                   – synthesised state: PLAYER / OFFLINE_PLAYER / BLOCK / WORLD / UNKNOWN / HIDDEN
 #                               (HIDDEN when visibility mode = HIDDEN and ignore_visibility = false)
 #   {bearer}                  – display name of the current bearer (or "none")
 #   {bearer_uuid}             – UUID string of the current bearer
@@ -62,7 +62,7 @@ config_version: 1
 #     · {x}/{y}/{z} always return exact values; use round() in the format for
 #       approximate output when desired
 #   ignore_visibility: true
-#     · {state} always returns the real egg state (PLAYER / BLOCK / DROPPED / UNKNOWN)
+#     · {state} always returns the real egg state (PLAYER / OFFLINE_PLAYER / BLOCK / WORLD / UNKNOWN)
 #     · Intended for admin / debug placeholders
 # =============================================================================
 
@@ -79,6 +79,8 @@ placeholders:
     conditions:
       - if: "{state} == 'HIDDEN'"
         output: "Hidden"
+      - if: "{state} == 'OFFLINE_PLAYER'"
+        output: "Carried by {bearer} (offline)"
       - if: "{state} == 'PLAYER'"
         output: "Carried by {bearer}"
     format: "{round({x},50)}, {round({z},50)}"
@@ -115,6 +117,8 @@ placeholders:
     conditions:
       - if: "{state} == 'HIDDEN'"
         output: "Unknown"
+      - if: "{state} == 'OFFLINE_PLAYER'"
+        output: "{bearer} (offline)"
       - if: "{state} == 'PLAYER'"
         output: "{bearer}"
     format: "None"

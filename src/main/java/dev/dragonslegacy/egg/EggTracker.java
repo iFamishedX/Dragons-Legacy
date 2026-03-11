@@ -131,6 +131,19 @@ public class EggTracker {
         eggDimension   = null;
     }
 
+    /**
+     * Called when the bearer is known but currently offline.
+     * Transitions state to {@link EggState#OFFLINE_PLAYER} and preserves the
+     * bearer UUID so the system can resume when they reconnect.
+     */
+    public void updateEggOfflinePlayer(UUID bearerUuid) {
+        currentState      = EggState.OFFLINE_PLAYER;
+        currentBearerUUID = bearerUuid;
+        placedLocation    = null;
+        eggDimension      = null;
+        persistentState.setBearerUUID(bearerUuid);
+    }
+
     // -------------------------------------------------------------------------
     // Scan
     // -------------------------------------------------------------------------
@@ -151,6 +164,20 @@ public class EggTracker {
      * world, it is automatically tagged with the component and adopted.
      */
     public void scanAndLocateEgg(MinecraftServer server) {
+        // Pre-check: if bearer UUID is known and bearer is offline, the egg is safely
+        // stored in the offline player's inventory.  Return early to avoid false
+        // "egg dropped" messages, UNKNOWN transitions, and fallback respawns.
+        if (currentBearerUUID != null) {
+            ServerPlayer bearer = server.getPlayerList().getPlayer(currentBearerUUID);
+            if (bearer == null) {
+                // Bearer is offline – update state without changing the already-stored UUID.
+                currentState   = EggState.OFFLINE_PLAYER;
+                placedLocation = null;
+                eggDimension   = null;
+                return;
+            }
+        }
+
         // 1 – player inventories
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             ItemStack found = findTaggedEggInPlayer(player);
