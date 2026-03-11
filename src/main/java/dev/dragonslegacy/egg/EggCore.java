@@ -240,7 +240,11 @@ public class EggCore {
                 DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] Egg state: PLAYER (bearer={})",
                     bearer != null ? bearer.getGameProfile().name() : "unknown");
             }
-            case WORLD -> DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] Egg state: WORLD (dropped item)");
+            case WORLD -> {
+                @Nullable BlockPos worldPos = eggTracker.getPlacedLocation();
+                DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] Egg state: WORLD (dropped item at {})",
+                    worldPos != null ? worldPos.toShortString() : "unknown pos");
+            }
             case BLOCK -> {
                 @Nullable BlockPos pos = eggTracker.getPlacedLocation();
                 DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] Egg state: BLOCK (pos={})",

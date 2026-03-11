@@ -530,6 +530,9 @@ public class PlaceholderEngine {
         return switch (state) {
             case PLAYER  -> "PLAYER";
             case BLOCK   -> "BLOCK";
+            // NOTE: previously returned "DROPPED" (from DROPPED_ITEM enum value).
+            // Changed to "WORLD" to match the renamed EggState.WORLD enum value.
+            // Update any placeholder conditions that previously checked for "DROPPED".
             case WORLD   -> "WORLD";
             case UNKNOWN -> "UNKNOWN";
         };
