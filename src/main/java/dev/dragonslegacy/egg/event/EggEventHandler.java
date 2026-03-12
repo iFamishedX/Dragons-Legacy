@@ -79,7 +79,9 @@ public class EggEventHandler {
             // Tick the ability engine every server tick
             legacy.getAbilityEngine().tick(server);
 
-            if (tick % TICK_INTERVAL == 0) {
+            boolean immediateRequested = legacy.getEggCore().consumeImmediateScrub();
+
+            if (tick % TICK_INTERVAL == 0 || immediateRequested) {
                 // Heartbeat: scan for egg via EggCore (includes fallback grace logic)
                 legacy.getEggCore().tick(server);
 
@@ -111,6 +113,8 @@ public class EggEventHandler {
             if (player.getUUID().equals(legacy.getEggTracker().getCurrentBearer())) {
                 legacy.getPassiveEffectsEngine().applyToBearer(player);
             }
+            // Request immediate scrub so inventory eggs are promoted before item entities
+            legacy.getEggCore().requestImmediateScrub();
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -125,6 +129,8 @@ public class EggEventHandler {
                 // egg as missing and fire false "egg dropped" / fallback spawn logic.
                 legacy.getEggTracker().updateEggOfflinePlayer(player.getUUID());
             }
+            // Request immediate scrub to update egg state after player inventory is gone
+            legacy.getEggCore().requestImmediateScrub();
         });
     }
 

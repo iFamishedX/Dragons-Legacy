@@ -17,8 +17,9 @@ import java.util.UUID;
 /**
  * Self-scrubbing anti-dupe engine for the canonical Dragon Egg.
  *
- * <p>Every scrub pass scans all online player inventories and dropped item entities,
- * classifies each Dragon Egg stack into one of four cases, and takes action:
+ * <p>Every scrub pass scans locations in the following priority order:
+ * online player inventories → item entities.
+ * Each Dragon Egg stack is classified into one of four cases, and action is taken:
  *
  * <ul>
  *   <li><b>Case A – canonical</b>: {@code dragonslegacy:egg = true} AND
@@ -130,8 +131,12 @@ public class EggAntiDupeEngine {
     // =========================================================================
 
     /**
-     * Promotes the first Dragon Egg found (tagged or untagged) to canonical status.
-     * All remaining eggs are left for the main scrub loop to delete as counterfeits.
+     * Promotes the first vanilla Dragon Egg found to canonical status.
+     * Scans in priority order: online player inventories first, then item entities.
+     * Item entities are only considered when no online player has a vanilla egg.
+     *
+     * <p>A "vanilla" egg is a plain {@link Items#DRAGON_EGG} with no
+     * {@code dragonslegacy:egg} or {@code dragonslegacy:egg_id} components.
      *
      * @return the newly assigned canonical UUID, or {@code null} if no egg was found
      */
@@ -141,22 +146,28 @@ public class EggAntiDupeEngine {
             List<TaggedStack> playerStacks,
             List<ItemEntity> entityEntries) {
 
-        // Prefer already-tagged eggs over vanilla ones (online players first)
         ItemStack candidate = null;
         String candidateCtx = "unknown";
 
+        // Priority 1 – vanilla (untagged) dragon eggs in online player inventories
+        logPromotion("Checking player inventory for vanilla egg...");
         for (TaggedStack ts : playerStacks) {
-            if (ts.stack.is(Items.DRAGON_EGG)) {
+            if (isVanillaDragonEgg(ts.stack)) {
                 candidate    = ts.stack;
                 candidateCtx = "player inventory of " + ts.context;
+                logPromotion("Found vanilla egg in {} inventory -- promoting.", ts.context);
                 break;
             }
         }
+
+        // Priority 2 – vanilla dragon egg item entities (only if no player has one)
         if (candidate == null) {
+            logPromotion("No player inventory eggs found, checking item entities...");
             for (ItemEntity item : entityEntries) {
-                if (item.getItem().is(Items.DRAGON_EGG)) {
+                if (isVanillaDragonEgg(item.getItem())) {
                     candidate    = item.getItem();
                     candidateCtx = "item entity at " + item.blockPosition().toShortString();
+                    logPromotion("Promoting item entity because no player inventory eggs exist.");
                     break;
                 }
             }
@@ -291,9 +302,27 @@ public class EggAntiDupeEngine {
         }
     }
 
-    /** Checks whether an item entity carries a vanilla Dragon Egg (any count). */
+    /**
+     * Returns {@code true} if the stack is a plain vanilla Dragon Egg with no
+     * Dragon's Legacy components (no {@code dragonslegacy:egg} and no
+     * {@code dragonslegacy:egg_id}).
+     */
+    private static boolean isVanillaDragonEgg(ItemStack stack) {
+        if (!stack.is(Items.DRAGON_EGG)) return false;
+        return !Boolean.TRUE.equals(stack.get(EggComponents.EGG)) && stack.get(EggComponents.EGG_ID) == null;
+    }
+
+    /** Checks whether an item entity carries a vanilla Dragon Egg (no components). */
     static boolean isVanillaDragonEgg(ItemEntity item) {
-        return item.getItem().is(Items.DRAGON_EGG);
+        return isVanillaDragonEgg(item.getItem());
+    }
+
+    /** Logs a promotion-decision message when egg-event debug logging is enabled. */
+    private void logPromotion(String msg, Object... args) {
+        var logging = DragonsLegacyMod.configManager.getLogging();
+        if (logging != null && logging.logging.enabled && logging.logging.eggEvents.console) {
+            DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] " + msg, args);
+        }
     }
 
     // =========================================================================

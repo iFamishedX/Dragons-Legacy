@@ -70,6 +70,8 @@ public class EggCore {
     private EggState lastLoggedState = null;
     /** Server tick at which the last UUID scramble occurred. */
     private int lastScrambleTick = -1;
+    /** When {@code true}, the anti-dupe engine will run on the very next server tick. */
+    private volatile boolean pendingImmediateScrub = false;
 
     EggCore(EggPersistentState persistentState,
             EggTracker eggTracker,
@@ -252,6 +254,25 @@ public class EggCore {
     // =========================================================================
     // Heartbeat tick
     // =========================================================================
+
+    /**
+     * Requests that the anti-dupe engine's {@code scanAndResolveDuplicates} runs on
+     * the next server tick, regardless of the normal interval.
+     * Safe to call from any thread.
+     */
+    public void requestImmediateScrub() {
+        pendingImmediateScrub = true;
+    }
+
+    /**
+     * Returns {@code true} and clears the pending flag if an immediate scrub was
+     * requested, {@code false} otherwise.  Intended for use by the tick handler only.
+     */
+    public boolean consumeImmediateScrub() {
+        if (!pendingImmediateScrub) return false;
+        pendingImmediateScrub = false;
+        return true;
+    }
 
     /**
      * Heartbeat: re-scans for the egg in all possible locations, updates state,
