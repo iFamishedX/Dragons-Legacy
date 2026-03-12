@@ -1,6 +1,7 @@
 package dev.dragonslegacy.mixin;
 
 import dev.dragonslegacy.api.DragonEggAPI;
+import dev.dragonslegacy.egg.DragonsLegacy;
 import dev.dragonslegacy.utils.Utils;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -26,6 +27,12 @@ public abstract class InventoryMixin implements Container {
     @Inject(method = "add(Lnet/minecraft/world/item/ItemStack;)Z", at = @At("RETURN"))
     private void onItemInsertion(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
         ItemStack itemStack = stack.copyWithCount(cir.getReturnValue() ? 1 : 0);
-        if (Utils.isOrHasDragonEgg(itemStack)) DragonEggAPI.updatePosition(this.player);
+        if (Utils.isOrHasDragonEgg(itemStack)) {
+            DragonEggAPI.updatePosition(this.player);
+            // Request an immediate scrub so the anti-dupe engine sees the egg
+            // in this player's inventory before promoting any item entity
+            DragonsLegacy legacy = DragonsLegacy.getInstance();
+            if (legacy != null) legacy.getEggCore().requestImmediateScrub();
+        }
     }
 }
