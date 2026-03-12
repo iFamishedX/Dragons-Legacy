@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Self-scrubbing anti-dupe engine for the canonical Dragon Egg.
+ * Cleanup-only scrubber for the canonical Dragon Egg.
  *
  * <p>Every scrub pass scans locations in the following priority order:
  * online player inventories → item entities.
- * Each Dragon Egg stack is classified into one of four cases, and action is taken:
+ * Each Dragon Egg stack is classified and action is taken:
  *
  * <ul>
  *   <li><b>Case A – canonical</b>: {@code dragonslegacy:egg = true} AND
@@ -29,8 +29,9 @@ import java.util.UUID;
  *   <li><b>Case C – wrong UUID</b>: {@code dragonslegacy:egg = true} OR
  *       {@code dragonslegacy:egg_id} present, but {@code egg_id != canonicalEggId}
  *       → delete (glitched/duped copy) and log.</li>
- *   <li><b>Case D – no canonical ID yet</b>: {@code canonicalEggId == null} →
- *       promote the first Dragon Egg found as the canonical egg (first-egg-wins).</li>
+ *   <li><b>No canonical ID</b>: {@code canonicalEggId == null} →
+ *       do nothing. Vanilla eggs are preserved. Promotion must be triggered by
+ *       an event handler via {@link EggPromotion}; never by the scrubber.</li>
  * </ul>
  *
  * <p>After a completely clean pass (exactly one canonical found, all counterfeits
@@ -77,11 +78,11 @@ public class EggAntiDupeEngine {
             }
         }
 
-        // ── Step 3: handle Case D – no canonical ID yet → promote ─────────────
+        // ── Step 3: if no canonical ID, do not delete or promote ──────────────
+        // Vanilla eggs are preserved intact. An event handler will call
+        // EggPromotion.tryPromote() when a player-inventory egg is available.
         if (canonicalId == null) {
-            canonicalId = promoteFirstEgg(server, state, playerStacks, entityEntries);
-            // After promotion, re-run the normal scrub with the new canonical ID
-            // (any remaining stacks after promotion are counterfeits)
+            return;
         }
 
         // ── Step 4: classify and delete ────────────────────────────────────────
@@ -127,65 +128,8 @@ public class EggAntiDupeEngine {
     }
 
     // =========================================================================
-    // Case D – canonical promotion (first egg wins)
+    // Classification
     // =========================================================================
-
-    /**
-     * Promotes the first vanilla Dragon Egg found to canonical status.
-     * Scans in priority order: online player inventories first, then item entities.
-     * Item entities are only considered when no online player has a vanilla egg.
-     *
-     * <p>A "vanilla" egg is a plain {@link Items#DRAGON_EGG} with no
-     * {@code dragonslegacy:egg} or {@code dragonslegacy:egg_id} components.
-     *
-     * @return the newly assigned canonical UUID, or {@code null} if no egg was found
-     */
-    private @Nullable UUID promoteFirstEgg(
-            MinecraftServer server,
-            EggPersistentState state,
-            List<TaggedStack> playerStacks,
-            List<ItemEntity> entityEntries) {
-
-        ItemStack candidate = null;
-        String candidateCtx = "unknown";
-
-        // Priority 1 – vanilla (untagged) dragon eggs in online player inventories
-        logPromotion("Checking player inventory for vanilla egg...");
-        for (TaggedStack ts : playerStacks) {
-            if (isVanillaDragonEgg(ts.stack)) {
-                candidate    = ts.stack;
-                candidateCtx = "player inventory of " + ts.context;
-                logPromotion("Found vanilla egg in {} inventory -- promoting.", ts.context);
-                break;
-            }
-        }
-
-        // Priority 2 – vanilla dragon egg item entities (only if no player has one)
-        if (candidate == null) {
-            logPromotion("No player inventory eggs found, checking item entities...");
-            for (ItemEntity item : entityEntries) {
-                if (isVanillaDragonEgg(item.getItem())) {
-                    candidate    = item.getItem();
-                    candidateCtx = "item entity at " + item.blockPosition().toShortString();
-                    logPromotion("Promoting item entity because no player inventory eggs exist.");
-                    break;
-                }
-            }
-        }
-
-        if (candidate == null || candidate.isEmpty()) return null;
-
-        UUID newId = UUID.randomUUID();
-        EggCore.tagEgg(candidate, newId);
-        state.setCanonicalEggId(newId);
-        state.setEggInitialized(true);
-
-        DragonsLegacyMod.LOGGER.info(
-            "[Dragon's Legacy] Canonical Dragon Egg established at: {}.",
-            candidateCtx
-        );
-        return newId;
-    }
 
     /**
      * Classifies a single {@link ItemStack} that is a Dragon Egg, adding it
@@ -304,25 +248,15 @@ public class EggAntiDupeEngine {
 
     /**
      * Returns {@code true} if the stack is a plain vanilla Dragon Egg with no
-     * Dragon's Legacy components (no {@code dragonslegacy:egg} and no
-     * {@code dragonslegacy:egg_id}).
+     * Dragon's Legacy components. Delegates to {@link EggPromotion#isVanillaDragonEgg}.
      */
     private static boolean isVanillaDragonEgg(ItemStack stack) {
-        if (!stack.is(Items.DRAGON_EGG)) return false;
-        return !Boolean.TRUE.equals(stack.get(EggComponents.EGG)) && stack.get(EggComponents.EGG_ID) == null;
+        return EggPromotion.isVanillaDragonEgg(stack);
     }
 
     /** Checks whether an item entity carries a vanilla Dragon Egg (no components). */
     static boolean isVanillaDragonEgg(ItemEntity item) {
-        return isVanillaDragonEgg(item.getItem());
-    }
-
-    /** Logs a promotion-decision message when egg-event debug logging is enabled. */
-    private void logPromotion(String msg, Object... args) {
-        var logging = DragonsLegacyMod.configManager.getLogging();
-        if (logging != null && logging.logging.enabled && logging.logging.eggEvents.console) {
-            DragonsLegacyMod.LOGGER.debug("[Dragon's Legacy] " + msg, args);
-        }
+        return EggPromotion.isVanillaDragonEgg(item.getItem());
     }
 
     // =========================================================================

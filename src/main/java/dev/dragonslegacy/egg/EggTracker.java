@@ -70,6 +70,7 @@ public class EggTracker {
     /** Called when a player picks up or holds the canonical egg. */
     public void updateEggHeld(ServerPlayer player) {
         UUID oldBearer = currentBearerUUID;
+        EggState oldState = currentState;
         currentState      = EggState.PLAYER;
         currentBearerUUID = player.getUUID();
         placedLocation    = null;
@@ -79,7 +80,11 @@ public class EggTracker {
         persistentState.setBearerLastSeenTick(player.level().getGameTime());
         persistentState.setEggInitialized(true);
 
-        eventBus.publish(new EggPickedUpEvent(player));
+        // Only fire the pickup announcement when the state actually transitions
+        // (not on every periodic re-scan while the player already holds the egg).
+        if (oldState != EggState.PLAYER || !player.getUUID().equals(oldBearer)) {
+            eventBus.publish(new EggPickedUpEvent(player));
+        }
         if (!player.getUUID().equals(oldBearer)) {
             eventBus.publish(new EggBearerChangedEvent(oldBearer, player.getUUID()));
         }
@@ -88,12 +93,17 @@ public class EggTracker {
     /** Called when the canonical egg is dropped as an item entity. */
     public void updateEggDropped(ItemEntity itemEntity) {
         UUID oldBearer = currentBearerUUID;
+        EggState oldState = currentState;
         currentState      = EggState.WORLD;
         currentBearerUUID = null;
         placedLocation    = itemEntity.blockPosition();
         eggDimension      = itemEntity.level().dimension();
 
-        eventBus.publish(new EggDroppedEvent(itemEntity));
+        // Only fire the "dropped" announcement when the state actually transitions
+        // to WORLD – not on every periodic re-scan while the egg lies on the ground.
+        if (oldState != EggState.WORLD) {
+            eventBus.publish(new EggDroppedEvent(itemEntity));
+        }
         if (oldBearer != null) {
             eventBus.publish(new EggBearerChangedEvent(oldBearer, null));
         }
@@ -102,6 +112,7 @@ public class EggTracker {
     /** Called when the canonical egg is placed as a block. */
     public void updateEggPlaced(BlockPos pos, ResourceKey<Level> dimension) {
         UUID oldBearer = currentBearerUUID;
+        EggState oldState = currentState;
         currentState      = EggState.BLOCK;
         currentBearerUUID = null;
         placedLocation    = pos;
@@ -109,7 +120,10 @@ public class EggTracker {
 
         persistentState.setEggInitialized(true);
 
-        eventBus.publish(new EggPlacedEvent(pos));
+        // Only fire the placement announcement on actual state transition.
+        if (oldState != EggState.BLOCK) {
+            eventBus.publish(new EggPlacedEvent(pos));
+        }
         if (oldBearer != null) {
             eventBus.publish(new EggBearerChangedEvent(oldBearer, null));
         }
